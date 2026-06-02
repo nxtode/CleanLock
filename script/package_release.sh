@@ -5,8 +5,8 @@ export COPYFILE_DISABLE=1
 APP_NAME="CleanLock"
 PRODUCT_NAME="CleanLock"
 BUNDLE_ID="dev.nxtode.cleanlock"
-VERSION="0.1.0"
-BUILD="1"
+VERSION="0.1.1"
+BUILD="2"
 APPCAST_URL="https://nxtode.github.io/CleanLock/appcast.xml"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DIST_DIR="$ROOT_DIR/dist"
@@ -16,6 +16,8 @@ APP_ICON="$ROOT_DIR/Resources/AppIcon.icns"
 SPARKLE_PUBLIC_KEY_FILE="$ROOT_DIR/Resources/SparklePublicEDKey.txt"
 ZIP_PATH="$DIST_DIR/$APP_NAME-v$VERSION.zip"
 DMG_PATH="$DIST_DIR/$APP_NAME-v$VERSION.dmg"
+LATEST_ZIP_PATH="$DIST_DIR/$APP_NAME-latest.zip"
+LATEST_DMG_PATH="$DIST_DIR/$APP_NAME-latest.dmg"
 PACKAGE_DIR="$DIST_DIR/package"
 TEMP_DMG_PATH="$PACKAGE_DIR/$APP_NAME-temp.dmg"
 VOLUME_DIR="$PACKAGE_DIR/$APP_NAME"
@@ -52,7 +54,7 @@ read_sparkle_public_key() {
 cd "$ROOT_DIR"
 
 echo "Cleaning release artifacts..."
-rm -rf "$APP_BUNDLE" "$ZIP_PATH" "$DMG_PATH" "$PACKAGE_DIR"
+rm -rf "$APP_BUNDLE" "$ZIP_PATH" "$DMG_PATH" "$LATEST_ZIP_PATH" "$LATEST_DMG_PATH" "$PACKAGE_DIR"
 mkdir -p "$APP_BUNDLE/Contents/MacOS" "$APP_BUNDLE/Contents/Resources" "$APP_BUNDLE/Contents/Frameworks" "$VOLUME_DIR"
 
 echo "Building $APP_NAME..."
@@ -148,10 +150,14 @@ EOF
 hdiutil detach "$MOUNT_DIR" -quiet
 hdiutil convert "$TEMP_DMG_PATH" -format UDZO -imagekey zlib-level=9 -o "$DMG_PATH"
 hdiutil verify "$DMG_PATH"
+cp "$ZIP_PATH" "$LATEST_ZIP_PATH"
+cp "$DMG_PATH" "$LATEST_DMG_PATH"
 
 echo "Release artifacts created:"
 echo "  $APP_BUNDLE"
 echo "  $ZIP_PATH"
 echo "  $DMG_PATH"
+echo "  $LATEST_ZIP_PATH"
+echo "  $LATEST_DMG_PATH"
 echo
 echo "Note: this build is not signed or notarized. macOS Gatekeeper may show a security warning."

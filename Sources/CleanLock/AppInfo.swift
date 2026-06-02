@@ -3,8 +3,8 @@ import Foundation
 enum AppInfo {
     static let name = "CleanLock"
     static let appName = "CleanLock"
-    static let version = "0.1.0"
-    static let build = "1"
+    static let version = "0.1.1"
+    static let build = "2"
     static let bundleIdentifier = "dev.nxtode.cleanlock"
     static let copyright = "© 2026 NXTode"
     static let latestReleaseAPIURL = URL(string: "https://api.github.com/repos/nxtode/CleanLock/releases/latest")!

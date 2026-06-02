@@ -2,9 +2,23 @@
 
 Lock your keyboard and trackpad while cleaning your Mac.
 
-CleanLock is a native macOS utility that starts a temporary Cleaning Mode, blocks input, and shows a full-screen overlay so you can wipe down your keyboard and trackpad without accidental typing, clicks, scrolling, or media-key presses.
+[![macOS 13+](https://img.shields.io/badge/macOS-13%2B-blue)](https://support.apple.com/macos)
+[![Latest Release](https://img.shields.io/github/v/release/nxtode/CleanLock)](https://github.com/nxtode/CleanLock/releases/latest)
+[![License: AGPL v3+](https://img.shields.io/badge/license-AGPL%20v3%2B-green)](LICENSE)
 
-Repository: https://github.com/nxtode/CleanLock
+**Download:** [CleanLock-latest.dmg](https://github.com/nxtode/CleanLock/releases/latest/download/CleanLock-latest.dmg)  
+**Alternative ZIP:** [CleanLock-latest.zip](https://github.com/nxtode/CleanLock/releases/latest/download/CleanLock-latest.zip)
+
+## Preview
+
+![CleanLock General](docs/assets/cleanlock-general.png)
+![CleanLock Permissions](docs/assets/cleanlock-permissions.png)
+![CleanLock About and Support](docs/assets/cleanlock-about-support.png)
+![CleanLock Overlay](docs/assets/cleanlock-overlay.png)
+
+## Overview
+
+CleanLock is a native macOS utility that starts a temporary Cleaning Mode, blocks input, and shows a full-screen overlay so you can wipe down your keyboard and trackpad without accidental typing, clicks, scrolling, or media-key presses.
 
 ## Features
 
@@ -18,32 +32,21 @@ Repository: https://github.com/nxtode/CleanLock
 - GitHub Releases fallback update checks.
 - Accessibility and Input Monitoring permission detection.
 
+## System Requirements
+
+- macOS 13 Ventura or later.
+- Accessibility permission.
+- Input Monitoring permission.
+
 ## Installation
 
-1. Download `CleanLock-v0.1.0.dmg` from GitHub Releases.
+1. Download [CleanLock-latest.dmg](https://github.com/nxtode/CleanLock/releases/latest/download/CleanLock-latest.dmg) from the official release page.
 2. Open the DMG.
 3. Drag `CleanLock.app` into Applications.
 4. Open CleanLock.
 5. Go to the Permissions tab and enable the required macOS permissions.
 
 Unsigned or unnotarized builds may trigger macOS security warnings.
-
-## Updates
-
-The first install is via DMG. Future updates can be installed through CleanLock using Sparkle from About & Support > Check for Updates.
-
-Sparkle appcast:
-
-```text
-https://nxtode.github.io/CleanLock/appcast.xml
-```
-
-GitHub Releases host the release assets:
-
-- DMG: first install and manual installation.
-- ZIP: Sparkle update asset and release fallback download.
-
-The Sparkle private key is stored in the macOS Keychain by Sparkle tooling. Never commit private Sparkle keys. Only the public `SUPublicEDKey` belongs in the app bundle metadata.
 
 ## Required Permissions
 
@@ -53,6 +56,42 @@ CleanLock needs two macOS privacy permissions:
 - Input Monitoring: needed to observe and intercept keyboard/input events.
 
 macOS requires manual approval for Accessibility and Input Monitoring. CleanLock cannot automatically grant these permissions during installation. The app opens the correct System Settings pages, can refresh permission status, and includes a Restart App action for cases where macOS requires a restart after approval.
+
+## Privacy
+
+CleanLock does not record, store, or transmit keystrokes, mouse input, screen contents, or personal data. Input access is used only to temporarily block local keyboard, mouse, trackpad, and supported media-key events during Cleaning Mode.
+
+CleanLock does not include analytics, telemetry, or remote tracking.
+
+## Trust & Official Releases
+
+The official repository is:
+
+```text
+https://github.com/nxtode/CleanLock
+```
+
+Official releases are published only at:
+
+```text
+https://github.com/nxtode/CleanLock/releases/latest
+```
+
+Recommended download:
+
+```text
+https://github.com/nxtode/CleanLock/releases/latest/download/CleanLock-latest.dmg
+```
+
+Alternative ZIP:
+
+```text
+https://github.com/nxtode/CleanLock/releases/latest/download/CleanLock-latest.zip
+```
+
+Only install CleanLock from the official GitHub Releases page unless you trust and have reviewed the source of a fork. Modified versions should clearly disclose their source code and license terms as required by the AGPL.
+
+Because CleanLock requires sensitive macOS permissions, users should only install builds from sources they trust. The official CleanLock builds are published from the NXTode repository. Forks and modified versions should be reviewed before installation.
 
 ## Usage
 
@@ -80,11 +119,39 @@ Click the shortcut field to start recording immediately. Press Escape or click o
 
 Custom images are copied into `Application Support/CleanLock` so the overlay can still load them if the original file moves. If a custom image is missing or unreadable, CleanLock falls back safely to the default overlay.
 
-## Build, Package, And Appcast
+## Updates
+
+The first install is via DMG. Future updates can be installed through CleanLock using Sparkle from About & Support > Check for Updates.
+
+Sparkle appcast:
+
+```text
+https://nxtode.github.io/CleanLock/appcast.xml
+```
+
+GitHub Releases host the release assets:
+
+- DMG: first install and manual installation.
+- ZIP: Sparkle update asset and release fallback download.
+
+The Sparkle private key is stored in the macOS Keychain by Sparkle tooling. Never commit private Sparkle keys. Only the public `SUPublicEDKey` belongs in the app bundle metadata.
+
+## Uninstall
+
+1. Quit CleanLock.
+2. Delete `CleanLock.app` from Applications.
+3. Remove CleanLock from Accessibility and Input Monitoring in System Settings.
+
+## Build from Source
 
 ```sh
 swift build
 ./script/build_and_run.sh --verify
+```
+
+## Release Process
+
+```sh
 ./script/package_release.sh
 ./script/sparkle_generate_appcast.sh
 ```
@@ -100,8 +167,10 @@ Save only the printed public `SUPublicEDKey` in `Resources/SparklePublicEDKey.tx
 `script/package_release.sh` creates release artifacts in `dist/`:
 
 - `dist/CleanLock.app`
-- `dist/CleanLock-v0.1.0.zip`
-- `dist/CleanLock-v0.1.0.dmg`
+- `dist/CleanLock-v0.1.1.zip`
+- `dist/CleanLock-v0.1.1.dmg`
+- `dist/CleanLock-latest.zip`
+- `dist/CleanLock-latest.dmg`
 
 `script/sparkle_generate_appcast.sh` writes:
 
@@ -117,6 +186,20 @@ Publish GitHub Pages from the `main` branch and `/docs` folder so the appcast is
 - Permissions may require quitting and reopening CleanLock after approval.
 - CleanLock is intended for brief cleaning sessions, not as a security lock.
 
+## Security
+
+If you believe you found a security or privacy issue, please open a GitHub issue with enough detail to reproduce the problem. Avoid sharing sensitive personal information in public issues.
+
+Report issues at:
+
+```text
+https://github.com/nxtode/CleanLock/issues
+```
+
 ## License
 
-License: Not yet specified.
+CleanLock is licensed under the GNU Affero General Public License v3.0 or later.
+
+You may use, study, modify, distribute, and sell copies of CleanLock, provided that any distributed modified version remains licensed under the AGPL and includes the corresponding source code. If you modify CleanLock and make it available for users to interact with over a network, the AGPL also requires that users be able to access the corresponding source code.
+
+See [LICENSE](LICENSE) for the full license text.

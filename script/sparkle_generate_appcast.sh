@@ -2,7 +2,7 @@
 set -euo pipefail
 
 APP_NAME="CleanLock"
-VERSION="0.1.0"
+VERSION="0.1.1"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DIST_DIR="$ROOT_DIR/dist"
 ZIP_PATH="$DIST_DIR/$APP_NAME-v$VERSION.zip"
@@ -46,7 +46,7 @@ rm -rf "$WORK_DIR"
 mkdir -p "$WORK_DIR" "$DOCS_DIR"
 cp "$ZIP_PATH" "$WORK_DIR/"
 cat > "$WORK_DIR/$APP_NAME-v$VERSION.md" <<EOF
-Initial public release of CleanLock for macOS.
+CleanLock $VERSION release.
 EOF
 
 "$GENERATE_APPCAST" \
