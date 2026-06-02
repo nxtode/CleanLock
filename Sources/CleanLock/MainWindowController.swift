@@ -8,7 +8,6 @@ struct MainWindowActions {
     let openAccessibilitySettings: () -> Void
     let openInputMonitoringSettings: () -> Void
     let checkForUpdates: () -> Void
-    let openDonationLink: () -> Void
     let openLatestReleasePage: () -> Void
     let openWebsite: () -> Void
     let openRepository: () -> Void

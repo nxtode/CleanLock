@@ -142,7 +142,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     openAccessibilitySettings: { [weak self] in self?.openAccessibilitySettings() },
                     openInputMonitoringSettings: { [weak self] in self?.openInputMonitoringSettings() },
                     checkForUpdates: { [weak self] in self?.checkForUpdates() },
-                    openDonationLink: { [weak self] in self?.openDonationLink() },
                     openLatestReleasePage: { [weak self] in self?.openLatestReleasePage() },
                     openWebsite: { [weak self] in self?.openWebsite() },
                     openRepository: { [weak self] in self?.openRepository() },
@@ -226,12 +225,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func openLatestReleasePage() {
         guard let url = model.latestReleaseURL else { return }
-        NSWorkspace.shared.open(url)
-    }
-
-    func openDonationLink() {
-        guard let url = AppInfo.githubSponsorsURL else { return }
-        print("Donation link opened: \(url.absoluteString)")
         NSWorkspace.shared.open(url)
     }
 

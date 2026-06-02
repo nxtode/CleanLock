@@ -3,7 +3,7 @@ set -euo pipefail
 
 APP_NAME="CleanLock"
 PRODUCT_NAME="CleanLock"
-BUNDLE_ID="dev.asuncion.cleanlock"
+BUNDLE_ID="dev.nxtode.cleanlock"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DIST_DIR="$ROOT_DIR/dist"
 APP_BUNDLE="$DIST_DIR/$APP_NAME.app"
@@ -50,7 +50,7 @@ cat > "$APP_BUNDLE/Contents/Info.plist" <<EOF
   <key>LSMinimumSystemVersion</key>
   <string>13.0</string>
   <key>NSHumanReadableCopyright</key>
-  <string>CleanLock</string>
+  <string>© 2026 NXTode</string>
   <key>NSPrincipalClass</key>
   <string>NSApplication</string>
 </dict>

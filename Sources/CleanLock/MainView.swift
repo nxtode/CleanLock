@@ -4,7 +4,6 @@ import AppKit
 private enum MainTab: String, CaseIterable, Identifiable {
     case general = "General"
     case permissions = "Permissions"
-    case hotkey = "Hotkey"
     case aboutSupport = "About & Support"
 
     var id: String { rawValue }
@@ -27,7 +26,7 @@ struct MainView: View {
     @State private var shortcutError: String?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .center, spacing: 16) {
             Picker("Section", selection: $selectedTab) {
                 ForEach(MainTab.allCases) { tab in
                     Text(tab.rawValue).tag(tab)
@@ -35,15 +34,21 @@ struct MainView: View {
             }
             .pickerStyle(.segmented)
             .labelsHidden()
-            .frame(maxWidth: .infinity)
+            .frame(maxWidth: 760)
 
             Divider()
+                .frame(maxWidth: 760)
 
-            selectedContent
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            ScrollView {
+                selectedContent
+                    .frame(maxWidth: 760, alignment: .leading)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.bottom, 12)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .padding(24)
-        .frame(minWidth: 720, minHeight: 520)
+        .frame(minWidth: 760, minHeight: 560)
         .onAppear {
             durationText = "\(UserDefaults.standard.sanitizedCleaningDuration())"
             shortcut = EmergencyShortcut.load()
@@ -62,306 +67,25 @@ struct MainView: View {
             generalTab
         case .permissions:
             permissionsTab
-        case .hotkey:
-            hotkeyTab
         case .aboutSupport:
             aboutSupportTab
         }
     }
 
     private var generalTab: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                header
-                statusSection
-
-                GroupBox("Cleaning Mode") {
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            Text("Auto-unlock after")
-                            TextField("60", text: $durationText)
-                                .textFieldStyle(.roundedBorder)
-                                .frame(width: 84)
-                                .onSubmit(saveDuration)
-                            Text("seconds")
-                                .foregroundStyle(.secondary)
-                        }
-
-                        Text("Set this to 0 to disable auto-unlock. Emergency unlock always remains available.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-
-                    Toggle("Show CleanLock in menu bar", isOn: Binding(
-                        get: { showMenuBarIcon },
-                        set: { newValue in
-                            showMenuBarIcon = newValue
-                            actions.menuBarPreferenceChanged(newValue)
-                        }
-                    ))
-
-                    Toggle("Start CleanLock at login", isOn: Binding(
-                        get: { model.startAtLoginEnabled },
-                        set: { newValue in
-                            model.startAtLoginEnabled = newValue
-                            actions.updateStartAtLoginPreference(newValue)
-                        }
-                    ))
-
-                    if let startAtLoginStatusText = model.startAtLoginStatusText {
-                        Text(startAtLoginStatusText)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .padding(.top, 4)
-            }
-
-                overlayAppearanceSection
-
-                Text("Cleaning Mode covers every connected display, blocks keyboard and trackpad input, and exits through the configured hotkey or timer.")
-                    .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
-
-    private var overlayAppearanceSection: some View {
-        GroupBox("Overlay appearance") {
-            VStack(alignment: .leading, spacing: 12) {
-                Picker("Overlay style", selection: overlayStyleBinding) {
-                    ForEach(OverlayStyle.allCases) { style in
-                        Text(style.title).tag(style)
-                    }
-                }
-                .pickerStyle(.segmented)
-
-                if currentOverlayStyle == .transparent {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Slider(value: opacityBinding, in: 0.10...0.70)
-                        Text("Opacity: \(Int(overlayOpacity * 100))%")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                if currentOverlayStyle == .customImage {
-                    HStack {
-                        Text(selectedImageName)
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                        Button("Choose Image", action: chooseCustomOverlayImage)
-                        Button("Clear Custom Image", action: clearCustomOverlayImage)
-                            .disabled(customOverlayImagePath.isEmpty)
-                    }
-
-                    if customOverlayImageWarning != nil {
-                        Text(customOverlayImageWarning!)
-                            .font(.caption)
-                            .foregroundStyle(.orange)
-                    }
-                }
-
-                Text("Transparent overlay lets you keep watching the screen while input is locked.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            .padding(.top, 4)
-        }
-    }
-
-    private var permissionsTab: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Permissions")
-                .font(.title.bold())
-
-            Text(permissionHelpText)
-                .foregroundStyle(.secondary)
-
-            GroupBox {
-                VStack(spacing: 12) {
-                    permissionRow(
-                        title: "Accessibility",
-                        granted: model.permissionStatus.accessibilityGranted,
-                        actionTitle: "Open Accessibility Settings",
-                        action: actions.openAccessibilitySettings
-                    )
-
-                    Divider()
-
-                    permissionRow(
-                        title: "Input Monitoring",
-                        granted: model.permissionStatus.inputMonitoringGranted,
-                        actionTitle: "Open Input Monitoring Settings",
-                        action: actions.openInputMonitoringSettings
-                    )
-                }
-                .padding(.top, 4)
-            }
-
-            Button("Refresh Permission Status", action: actions.refreshPermissions)
-
-            Text("After enabling permissions in System Settings, quit and reopen CleanLock if macOS asks you to.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-            Spacer()
+            header
+                .frame(maxWidth: .infinity, alignment: .leading)
+            statusSection
+            cleaningModeSection
+            unlockShortcutSection
+            overlayAppearanceSection
         }
-    }
-
-    private var hotkeyTab: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Hotkey")
-                .font(.title.bold())
-
-            Text("This shortcut only exits Cleaning Mode. It does not quit CleanLock.")
-                .foregroundStyle(.secondary)
-
-            GroupBox("Unlock shortcut setting") {
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack {
-                        keyCaps(for: isRecordingShortcut ? liveShortcut : shortcut)
-                        Spacer()
-                        Button(isRecordingShortcut ? "Recording..." : "Record Shortcut") {
-                            beginRecording()
-                        }
-                        Button("Reset to Default") {
-                            EmergencyShortcut.resetToDefault()
-                            shortcut = .defaultShortcut
-                            shortcutError = nil
-                            print("Shortcut reset.")
-                        }
-                    }
-
-                    Text("Use at least 2 keys.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-
-                    if isRecordingShortcut {
-                        Text("Hold the desired keys, then release them to apply.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        ShortcutRecorderView(
-                            onEvent: recordEvent,
-                            onDisappear: cancelRecording
-                        )
-                        .frame(width: 1, height: 1)
-                    }
-
-                    if let shortcutError {
-                        Text(shortcutError)
-                            .font(.caption)
-                            .foregroundStyle(.red)
-                    }
-                }
-                .padding(.top, 4)
-            }
-
-            Spacer()
-        }
-    }
-
-    private var aboutSupportTab: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                GroupBox("About") {
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack(spacing: 16) {
-                            appIcon
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text(AppInfo.name)
-                                    .font(.title.bold())
-                                Text("Version: \(AppInfo.version)")
-                                Text("Build: \(AppInfo.build)")
-                                Text("Bundle identifier: \(AppInfo.bundleIdentifier)")
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-
-                        Text("CleanLock helps you safely lock your keyboard and trackpad while cleaning your Mac.")
-                            .foregroundStyle(.secondary)
-
-                        Text(AppInfo.copyright)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.top, 4)
-                }
-
-                GroupBox("Updates") {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Toggle("Automatically check for updates", isOn: Binding(
-                            get: { model.updatesAutomaticallyEnabled },
-                            set: { newValue in
-                                model.updatesAutomaticallyEnabled = newValue
-                                actions.updateAutomaticUpdatePreference(newValue)
-                            }
-                        ))
-
-                        HStack {
-                            Button("Check for Updates", action: actions.checkForUpdates)
-                                .disabled(model.updateCheckStatus == .checking)
-                            Text(model.updateStatusText)
-                                .foregroundStyle(.secondary)
-                        }
-
-                        if model.latestReleaseURL != nil {
-                            Button("Open Release Page", action: actions.openLatestReleasePage)
-                        }
-
-                        Text("Manual update checking uses GitHub Releases. Automatic updates via Sparkle are planned later.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.top, 4)
-                }
-
-                GroupBox("Support / Donate") {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("If CleanLock helps you, you can support development.")
-                            .foregroundStyle(.secondary)
-
-                        if AppInfo.githubSponsorsURL != nil {
-                            Button("Open GitHub Sponsors", action: actions.openDonationLink)
-                        } else {
-                            Text("GitHub Sponsors coming soon.")
-                                .font(.headline)
-                            Text("Future placeholder: \(AppInfo.futureGitHubSponsorsURL?.absoluteString ?? "not configured")")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    .padding(.top, 4)
-                }
-
-                HStack {
-                    Button("Website", action: actions.openWebsite)
-                        .disabled(AppInfo.websiteURL == nil)
-                    Button("GitHub Repository", action: actions.openRepository)
-                        .disabled(AppInfo.repositoryURL == nil)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
-
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 12) {
-                Image(systemName: "keyboard.badge.ellipsis")
-                    .font(.system(size: 36, weight: .semibold))
-                    .foregroundStyle(Color.accentColor)
-                Text("CleanLock")
-                    .font(.system(size: 34, weight: .bold))
-            }
-
-            Text("Lock your keyboard and trackpad while cleaning your Mac.")
-                .font(.title3)
-                .foregroundStyle(.secondary)
-        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var statusSection: some View {
-        GroupBox {
+        sectionCard {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
                     Text("Current status")
@@ -393,8 +117,296 @@ struct MainView: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            .padding(.top, 4)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
+    }
+
+    private var cleaningModeSection: some View {
+        sectionCard("Cleaning Mode") {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Text("Auto-unlock after")
+                    TextField("60", text: $durationText)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(width: 84)
+                        .onSubmit(saveDuration)
+                    Text("seconds")
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                }
+
+                Text("Set this to 0 to disable auto-unlock. Emergency unlock always remains available.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Toggle("Show CleanLock in menu bar", isOn: Binding(
+                    get: { showMenuBarIcon },
+                    set: { newValue in
+                        showMenuBarIcon = newValue
+                        actions.menuBarPreferenceChanged(newValue)
+                    }
+                ))
+
+                Toggle("Start CleanLock at login", isOn: Binding(
+                    get: { model.startAtLoginEnabled },
+                    set: { newValue in
+                        model.startAtLoginEnabled = newValue
+                        actions.updateStartAtLoginPreference(newValue)
+                    }
+                ))
+
+                if let startAtLoginStatusText = model.startAtLoginStatusText {
+                    Text(startAtLoginStatusText)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private var unlockShortcutSection: some View {
+        sectionCard("Unlock Shortcut") {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 10) {
+                    Button(action: beginRecording) {
+                        HStack(spacing: 8) {
+                            keyCaps(for: isRecordingShortcut ? liveShortcut : shortcut)
+                            Spacer()
+                            if isRecordingShortcut {
+                                Text("Recording")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .padding(.horizontal, 10)
+                        .frame(height: 38)
+                        .frame(maxWidth: .infinity)
+                        .background(.quaternary.opacity(0.55))
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(Color.secondary.opacity(0.28), lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(.plain)
+
+                    Button(action: resetShortcutToDefault) {
+                        Image(systemName: "xmark.circle.fill")
+                            .imageScale(.medium)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Reset to default")
+                }
+                .frame(maxWidth: .infinity)
+
+                Text("Use at least 2 keys. This shortcut only exits Cleaning Mode.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                if isRecordingShortcut {
+                    Text("Hold the desired keys, then release them to apply. Escape cancels recording.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    ShortcutRecorderView(
+                        onEvent: recordEvent,
+                        onDisappear: cancelRecording
+                    )
+                    .frame(width: 1, height: 1)
+                }
+
+                if let shortcutError {
+                    Text(shortcutError)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private var overlayAppearanceSection: some View {
+        sectionCard("Overlay Appearance") {
+            VStack(alignment: .leading, spacing: 12) {
+                Picker("Overlay style", selection: overlayStyleBinding) {
+                    ForEach(OverlayStyle.allCases) { style in
+                        Text(style.title).tag(style)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .frame(maxWidth: .infinity)
+
+                if currentOverlayStyle == .transparent {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Slider(value: opacityBinding, in: 0.10...0.70)
+                        Text("Opacity: \(Int(overlayOpacity * 100))%")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+
+                if currentOverlayStyle == .customImage {
+                    HStack {
+                        Text(selectedImageName)
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Button("Choose Image", action: chooseCustomOverlayImage)
+                        Button("Clear Custom Image", action: clearCustomOverlayImage)
+                            .disabled(customOverlayImagePath.isEmpty)
+                    }
+                    .frame(maxWidth: .infinity)
+
+                    if let customOverlayImageWarning {
+                        Text(customOverlayImageWarning)
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                    }
+                }
+
+                Text("Transparent overlay lets you keep watching the screen while input is locked.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private var permissionsTab: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Permissions")
+                .font(.title.bold())
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            sectionCard("Accessibility") {
+                permissionRow(
+                    title: "Accessibility",
+                    granted: model.permissionStatus.accessibilityGranted,
+                    actionTitle: "Open Accessibility Settings",
+                    action: actions.openAccessibilitySettings
+                )
+            }
+
+            sectionCard("Input Monitoring") {
+                permissionRow(
+                    title: "Input Monitoring",
+                    granted: model.permissionStatus.inputMonitoringGranted,
+                    actionTitle: "Open Input Monitoring Settings",
+                    action: actions.openInputMonitoringSettings
+                )
+            }
+
+            sectionCard("Permission Instructions") {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(permissionHelpText)
+                        .foregroundStyle(.secondary)
+
+                    Button("Refresh Permission Status", action: actions.refreshPermissions)
+
+                    Text("After enabling permissions in System Settings, quit and reopen CleanLock if macOS asks you to.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var aboutSupportTab: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            sectionCard("About") {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(spacing: 16) {
+                        appIcon
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(AppInfo.name)
+                                .font(.title.bold())
+                            Text("Version: \(AppInfo.version)")
+                            Text("Build: \(AppInfo.build)")
+                            Text("Bundle identifier: \(AppInfo.bundleIdentifier)")
+                                .foregroundStyle(.secondary)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+
+                    Text("CleanLock helps you safely lock your keyboard and trackpad while cleaning your Mac.")
+                        .foregroundStyle(.secondary)
+
+                    Text(AppInfo.copyright)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            sectionCard("Updates") {
+                VStack(alignment: .leading, spacing: 12) {
+                    Toggle("Automatically check for updates", isOn: Binding(
+                        get: { model.updatesAutomaticallyEnabled },
+                        set: { newValue in
+                            model.updatesAutomaticallyEnabled = newValue
+                            actions.updateAutomaticUpdatePreference(newValue)
+                        }
+                    ))
+
+                    HStack {
+                        Button("Check for Updates", action: actions.checkForUpdates)
+                            .disabled(model.updateCheckStatus == .checking)
+                        Text(model.updateStatusText)
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                    }
+
+                    if model.latestReleaseURL != nil {
+                        Button("Open Release Page", action: actions.openLatestReleasePage)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            sectionCard("Repository") {
+                HStack {
+                    Button("GitHub Repository", action: actions.openRepository)
+                        .disabled(AppInfo.repositoryURL == nil)
+                    if AppInfo.websiteURL != nil {
+                        Button("Website", action: actions.openWebsite)
+                    }
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 12) {
+                Image(systemName: "keyboard.badge.ellipsis")
+                    .font(.system(size: 36, weight: .semibold))
+                    .foregroundStyle(Color.accentColor)
+                Text("CleanLock")
+                    .font(.system(size: 34, weight: .bold))
+            }
+
+            Text("Lock your keyboard and trackpad while cleaning your Mac.")
+                .font(.title3)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private func sectionCard<Content: View>(_ title: String? = nil, @ViewBuilder content: () -> Content) -> some View {
+        GroupBox {
+            content()
+                .padding(.top, title == nil ? 0 : 4)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        } label: {
+            if let title {
+                Text(title)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func permissionRow(title: String, granted: Bool, actionTitle: String, action: @escaping () -> Void) -> some View {
@@ -410,15 +422,16 @@ struct MainView: View {
                 Button(actionTitle, action: action)
             }
         }
+        .frame(maxWidth: .infinity)
     }
 
     private func keyCaps(for shortcut: EmergencyShortcut) -> some View {
         HStack(spacing: 6) {
             ForEach(Array(shortcut.displaySymbols.enumerated()), id: \.offset) { _, symbol in
                 Text(symbol)
-                    .font(.system(size: 18, weight: .semibold, design: .rounded))
-                    .frame(minWidth: 32, minHeight: 30)
-                    .background(.quaternary)
+                    .font(.system(size: 17, weight: .semibold, design: .rounded))
+                    .frame(minWidth: 30, minHeight: 26)
+                    .background(.background.opacity(0.65))
                     .clipShape(RoundedRectangle(cornerRadius: 6))
             }
         }
@@ -518,6 +531,13 @@ struct MainView: View {
         shortcutError = nil
         isRecordingShortcut = true
         print("Shortcut recording started.")
+    }
+
+    private func resetShortcutToDefault() {
+        EmergencyShortcut.resetToDefault()
+        shortcut = .defaultShortcut
+        shortcutError = nil
+        print("Shortcut reset.")
     }
 
     private func recordEvent(_ event: NSEvent) {

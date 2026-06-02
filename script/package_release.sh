@@ -4,7 +4,7 @@ export COPYFILE_DISABLE=1
 
 APP_NAME="CleanLock"
 PRODUCT_NAME="CleanLock"
-BUNDLE_ID="dev.asuncion.cleanlock"
+BUNDLE_ID="dev.nxtode.cleanlock"
 VERSION="0.1.0"
 BUILD="1"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -15,7 +15,9 @@ APP_ICON="$ROOT_DIR/Resources/AppIcon.icns"
 ZIP_PATH="$DIST_DIR/$APP_NAME-v$VERSION.zip"
 DMG_PATH="$DIST_DIR/$APP_NAME-v$VERSION.dmg"
 PACKAGE_DIR="$DIST_DIR/package"
+TEMP_DMG_PATH="$PACKAGE_DIR/$APP_NAME-temp.dmg"
 VOLUME_DIR="$PACKAGE_DIR/$APP_NAME"
+MOUNT_DIR="$PACKAGE_DIR/mount"
 
 require_tool() {
   if ! command -v "$1" >/dev/null 2>&1; then
@@ -27,6 +29,7 @@ require_tool() {
 require_tool swift
 require_tool ditto
 require_tool hdiutil
+require_tool osascript
 
 cd "$ROOT_DIR"
 
@@ -72,7 +75,7 @@ cat > "$APP_BUNDLE/Contents/Info.plist" <<EOF
   <key>LSMinimumSystemVersion</key>
   <string>13.0</string>
   <key>NSHumanReadableCopyright</key>
-  <string>CleanLock</string>
+  <string>© 2026 NXTode</string>
   <key>NSPrincipalClass</key>
   <string>NSApplication</string>
 </dict>
@@ -85,7 +88,32 @@ ditto -c -k --norsrc --keepParent "$APP_BUNDLE" "$ZIP_PATH"
 echo "Creating DMG..."
 cp -R "$APP_BUNDLE" "$VOLUME_DIR/"
 ln -s /Applications "$VOLUME_DIR/Applications"
-hdiutil create -volname "$APP_NAME" -srcfolder "$VOLUME_DIR" -ov -format UDZO "$DMG_PATH"
+hdiutil create -volname "$APP_NAME" -srcfolder "$VOLUME_DIR" -ov -format UDRW "$TEMP_DMG_PATH"
+mkdir -p "$MOUNT_DIR"
+hdiutil attach "$TEMP_DMG_PATH" -mountpoint "$MOUNT_DIR" -noautoopen -quiet
+
+osascript <<EOF || echo "Warning: Finder layout customization failed; DMG contents are still valid."
+tell application "Finder"
+  tell disk "$APP_NAME"
+    open
+    set current view of container window to icon view
+    set toolbar visible of container window to false
+    set statusbar visible of container window to false
+    set the bounds of container window to {100, 100, 740, 520}
+    set icon size of icon view options of container window to 96
+    set arrangement of icon view options of container window to not arranged
+    set position of item "$APP_NAME.app" of container window to {180, 200}
+    set position of item "Applications" of container window to {460, 200}
+    update without registering applications
+    delay 1
+    close
+  end tell
+end tell
+EOF
+
+hdiutil detach "$MOUNT_DIR" -quiet
+hdiutil convert "$TEMP_DMG_PATH" -format UDZO -imagekey zlib-level=9 -o "$DMG_PATH"
+hdiutil verify "$DMG_PATH"
 
 echo "Release artifacts created:"
 echo "  $APP_BUNDLE"

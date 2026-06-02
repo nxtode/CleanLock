@@ -6,34 +6,26 @@ CleanLock is a native macOS utility that starts a temporary Cleaning Mode, block
 
 Repository: https://github.com/nxtode/CleanLock
 
-## What It Does
-
-- Locks keyboard, mouse, and trackpad input during Cleaning Mode.
-- Shows a full-screen overlay across connected displays.
-- Supports an emergency unlock hotkey.
-- Supports an optional auto-unlock timer.
-- Provides optional menu bar access.
-
 ## Features
 
-- Normal macOS app window with four tabs: General, Permissions, Hotkey, About & Support.
+- Native macOS app window with General, Permissions, and About & Support tabs.
 - Optional menu bar icon.
 - Custom unlock shortcut.
 - Auto-unlock duration, including `0` to disable auto-unlock.
 - Overlay styles: Default, Transparent, and Custom Image.
 - Start at Login.
-- Manual and automatic update checks via GitHub Releases.
+- Manual and automatic update checks through GitHub Releases.
 - Accessibility and Input Monitoring permission detection.
 
 ## Installation
 
 1. Download the latest DMG or ZIP from GitHub Releases.
-2. Recommended: use the DMG.
-3. Open the DMG and drag `CleanLock.app` into Applications.
+2. Recommended: open the DMG.
+3. Drag `CleanLock.app` into Applications.
 4. Open CleanLock.
 5. Go to the Permissions tab and enable the required macOS permissions.
 
-Unsigned or unnotarized builds may trigger macOS Gatekeeper warnings.
+Unsigned or unnotarized builds may trigger macOS security warnings.
 
 ## Required Permissions
 
@@ -42,27 +34,19 @@ CleanLock needs two macOS privacy permissions:
 - Accessibility: needed to control and block input.
 - Input Monitoring: needed to observe and intercept keyboard/input events.
 
-macOS requires the user to manually approve these permissions. CleanLock cannot and should not bypass Apple’s privacy controls. The app can open the correct System Settings pages and detect when permissions are granted.
-
-For normal users, a DMG, ZIP, or PKG cannot silently grant Accessibility or Input Monitoring permissions. Enterprise-managed Macs may use MDM/PPPC profiles, but that is outside normal app installation.
+macOS requires manual approval for Accessibility and Input Monitoring. CleanLock cannot automatically grant these permissions during installation. The app opens the correct System Settings pages and detects when permissions are granted.
 
 ## Usage
 
 1. Open CleanLock.
-2. Configure settings in General, Permissions, Hotkey, and About & Support.
+2. Configure General, Permissions, and About & Support.
 3. Click Start Cleaning Mode.
 4. Clean your keyboard and trackpad.
 5. Use the configured emergency shortcut to exit Cleaning Mode.
 
 ## Default Shortcut
 
-The default unlock shortcut is:
-
-```text
-Left Command + Right Command
-```
-
-It is displayed in the app as:
+The default unlock shortcut is Left Command + Right Command, displayed as:
 
 ```text
 ⌘ ⌘
@@ -78,6 +62,14 @@ This shortcut exits Cleaning Mode only. It does not quit CleanLock.
 
 Custom images are copied into `Application Support/CleanLock` so the overlay can still load them if the original file moves. If a custom image is missing or unreadable, CleanLock falls back safely to the default overlay.
 
+## Start At Login
+
+The General tab includes `Start CleanLock at login`. CleanLock uses the macOS `ServiceManagement.SMAppService.mainApp` API on macOS 13 or later to register or unregister the app.
+
+## Optional Menu Bar Access
+
+The General tab includes `Show CleanLock in menu bar`. When enabled, the menu bar item can start Cleaning Mode, open CleanLock, or quit the app.
+
 ## Update Checking
 
 CleanLock checks GitHub Releases:
@@ -86,16 +78,7 @@ CleanLock checks GitHub Releases:
 https://api.github.com/repos/nxtode/CleanLock/releases/latest
 ```
 
-Manual update checks are available in About & Support. Automatic update checks can be enabled or disabled and run at most once per day. CleanLock does not auto-install updates yet; use the release page to download the newest DMG or ZIP.
-
-Full automatic updates via Sparkle are planned later.
-
-## Known Limitations
-
-- Some media, brightness, or hardware-level keys may be handled by macOS or firmware before CleanLock can intercept them.
-- Unsigned or unnotarized builds may trigger Gatekeeper warnings.
-- Permissions may require quitting and reopening CleanLock after approval.
-- CleanLock is intended for brief cleaning sessions, not as a security lock.
+Manual update checks are available in About & Support. Automatic update checks can be enabled or disabled and run at most once per day. CleanLock does not auto-install updates; use the release page to download the newest DMG or ZIP.
 
 ## Build From Source
 
@@ -115,10 +98,13 @@ swift build
 
 The DMG includes `CleanLock.app` and an Applications symlink so users can drag the app into Applications.
 
-## Support
+## Known Limitations
 
-- GitHub Issues: https://github.com/nxtode/CleanLock/issues
-- Support options may be added later.
+- macOS requires manual Accessibility and Input Monitoring approval.
+- Some media, brightness, or hardware-level keys may be handled by macOS before apps can intercept them.
+- Unsigned or unnotarized builds may trigger macOS security warnings.
+- Permissions may require quitting and reopening CleanLock after approval.
+- CleanLock is intended for brief cleaning sessions, not as a security lock.
 
 ## License
 
