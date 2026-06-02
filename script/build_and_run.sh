@@ -4,13 +4,20 @@ set -euo pipefail
 APP_NAME="CleanLock"
 PRODUCT_NAME="CleanLock"
 BUNDLE_ID="dev.nxtode.cleanlock"
-VERSION="0.1.1"
-BUILD="2"
+VERSION="0.1.2"
+BUILD="3"
 APPCAST_URL="https://nxtode.github.io/CleanLock/appcast.xml"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DIST_DIR="$ROOT_DIR/dist"
 APP_BUNDLE="$DIST_DIR/$APP_NAME.app"
 EXECUTABLE="$ROOT_DIR/.build/debug/$PRODUCT_NAME"
+MENU_BAR_AGENT_NAME="CleanLockMenuBarAgent"
+LOGIN_HELPER_NAME="CleanLockLoginHelper"
+MENU_BAR_AGENT_EXECUTABLE="$ROOT_DIR/.build/debug/$MENU_BAR_AGENT_NAME"
+LOGIN_HELPER_EXECUTABLE="$ROOT_DIR/.build/debug/$LOGIN_HELPER_NAME"
+LOGIN_ITEMS_DIR="$APP_BUNDLE/Contents/Library/LoginItems"
+MENU_BAR_AGENT_BUNDLE="$LOGIN_ITEMS_DIR/$MENU_BAR_AGENT_NAME.app"
+LOGIN_HELPER_BUNDLE="$LOGIN_ITEMS_DIR/$LOGIN_HELPER_NAME.app"
 APP_ICON="$ROOT_DIR/Resources/AppIcon.icns"
 SPARKLE_PUBLIC_KEY_FILE="$ROOT_DIR/Resources/SparklePublicEDKey.txt"
 
@@ -28,14 +35,59 @@ read_sparkle_public_key() {
   tr -d '\n\r[:space:]' < "$SPARKLE_PUBLIC_KEY_FILE"
 }
 
+stage_helper_app() {
+  local name="$1"
+  local executable="$2"
+  local bundle="$3"
+  local bundle_id="$4"
+
+  if [[ ! -x "$executable" ]]; then
+    echo "Missing helper executable: $executable" >&2
+    exit 1
+  fi
+
+  mkdir -p "$bundle/Contents/MacOS" "$bundle/Contents/Resources"
+  cp "$executable" "$bundle/Contents/MacOS/$name"
+  cat > "$bundle/Contents/Info.plist" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleExecutable</key>
+  <string>$name</string>
+  <key>CFBundleIdentifier</key>
+  <string>$bundle_id</string>
+  <key>CFBundleName</key>
+  <string>$name</string>
+  <key>CFBundleDisplayName</key>
+  <string>$name</string>
+  <key>CFBundlePackageType</key>
+  <string>APPL</string>
+  <key>CFBundleShortVersionString</key>
+  <string>$VERSION</string>
+  <key>CFBundleVersion</key>
+  <string>$BUILD</string>
+  <key>LSMinimumSystemVersion</key>
+  <string>13.0</string>
+  <key>LSUIElement</key>
+  <true/>
+  <key>NSPrincipalClass</key>
+  <string>NSApplication</string>
+</dict>
+</plist>
+EOF
+}
+
 cd "$ROOT_DIR"
 
 pkill -x "$APP_NAME" >/dev/null 2>&1 || true
 swift build
 
 rm -rf "$APP_BUNDLE"
-mkdir -p "$APP_BUNDLE/Contents/MacOS" "$APP_BUNDLE/Contents/Resources" "$APP_BUNDLE/Contents/Frameworks"
+mkdir -p "$APP_BUNDLE/Contents/MacOS" "$APP_BUNDLE/Contents/Resources" "$APP_BUNDLE/Contents/Frameworks" "$LOGIN_ITEMS_DIR"
 cp "$EXECUTABLE" "$APP_BUNDLE/Contents/MacOS/$APP_NAME"
+stage_helper_app "$MENU_BAR_AGENT_NAME" "$MENU_BAR_AGENT_EXECUTABLE" "$MENU_BAR_AGENT_BUNDLE" "dev.nxtode.cleanlock.menubar"
+stage_helper_app "$LOGIN_HELPER_NAME" "$LOGIN_HELPER_EXECUTABLE" "$LOGIN_HELPER_BUNDLE" "dev.nxtode.cleanlock.loginhelper"
 SPARKLE_FRAMEWORK="$(find_sparkle_framework)"
 if [[ -z "$SPARKLE_FRAMEWORK" ]]; then
   echo "Sparkle.framework was not found in SwiftPM build products." >&2

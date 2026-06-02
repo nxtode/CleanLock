@@ -3,7 +3,6 @@ import SwiftUI
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    private var menuBarController: MenuBarController?
     private let model = CleanLockModel()
     private let inputBlocker = InputBlocker()
     private let permissionManager = PermissionManager()
@@ -14,6 +13,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var remainingSeconds = 0
     private var isCleaning = false
     private var isStoppingCleaningMode = false
+    private var launchArguments: Set<String> = []
 
     private var duration: Int {
         UserDefaults.standard.sanitizedCleaningDuration()
@@ -21,6 +21,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         print("App launch.")
+        launchArguments = Set(ProcessInfo.processInfo.arguments.dropFirst())
         NSApp.setActivationPolicy(.regular)
         registerDefaultPreferences()
         refreshPermissionStatus()
@@ -30,10 +31,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             name: NSApplication.didBecomeActiveNotification,
             object: nil
         )
+        registerAgentCommandObservers()
         configureMenuBarVisibility(UserDefaults.standard.bool(forKey: PreferencesKeys.showMenuBarIcon))
         configureSparkleUpdates()
         refreshStartAtLoginStatus()
-        showMainWindow()
+        handleLaunchArguments()
         scheduleAutomaticUpdateCheckIfNeeded()
     }
 
@@ -54,6 +56,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func applicationDidBecomeActive() {
         refreshPermissionStatus()
+    }
+
+    @objc private func handleOpenMainWindowNotification() {
+        showMainWindow()
+    }
+
+    @objc private func handleStartCleaningNotification() {
+        startCleaningMode()
+    }
+
+    @objc private func handleQuitMainNotification() {
+        quit()
     }
 
     func startCleaningMode() {
@@ -86,7 +100,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         model.isCleaning = true
         model.isStoppingCleaningMode = false
         model.inlineMessage = nil
-        menuBarController?.setCleaningActive(true)
         showOverlay(shortcut: shortcut)
         if remainingSeconds > 0 {
             startCountdown()
@@ -116,7 +129,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         model.isStoppingCleaningMode = false
         isStoppingCleaningMode = false
         refreshPermissionStatus()
-        menuBarController?.setCleaningActive(false)
         if reason == .emergencyShortcut {
             print("stopCleaningMode emergencyShortcut started.")
             print("Cleaning mode stopped by emergency shortcut.")
@@ -278,9 +290,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func updateStartAtLoginPreference(_ isEnabled: Bool) {
         do {
+            if isEnabled {
+                UserDefaults.standard.set(true, forKey: PreferencesKeys.showMenuBarIcon)
+                MenuBarAgentManager.start()
+            }
             try LaunchAtLoginManager.setEnabled(isEnabled)
             model.startAtLoginEnabled = LaunchAtLoginManager.isEnabled
-            model.startAtLoginStatusText = isEnabled ? "CleanLock will start at login." : nil
+            model.startAtLoginStatusText = isEnabled
+                ? "Start at Login keeps CleanLock available from the menu bar without opening the main window."
+                : nil
         } catch {
             model.startAtLoginEnabled = LaunchAtLoginManager.isEnabled
             model.startAtLoginStatusText = "Start at login registration failed. This may require running CleanLock from its app bundle."
@@ -312,15 +330,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func configureMenuBarVisibility(_ isEnabled: Bool) {
+        if model.startAtLoginEnabled, !isEnabled {
+            UserDefaults.standard.set(true, forKey: PreferencesKeys.showMenuBarIcon)
+            MenuBarAgentManager.start()
+            return
+        }
+
         UserDefaults.standard.set(isEnabled, forKey: PreferencesKeys.showMenuBarIcon)
         if isEnabled {
-            if menuBarController == nil {
-                menuBarController = MenuBarController(appDelegate: self)
-            }
-            menuBarController?.setCleaningActive(isCleaning)
+            MenuBarAgentManager.start()
         } else {
-            menuBarController?.invalidate()
-            menuBarController = nil
+            MenuBarAgentManager.stop()
         }
     }
 
@@ -342,6 +362,54 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func refreshStartAtLoginStatus() {
         model.startAtLoginEnabled = LaunchAtLoginManager.isEnabled
+        if model.startAtLoginEnabled {
+            model.startAtLoginStatusText = "Start at Login keeps CleanLock available from the menu bar without opening the main window."
+        }
+    }
+
+    private func registerAgentCommandObservers() {
+        let center = DistributedNotificationCenter.default()
+        center.addObserver(
+            self,
+            selector: #selector(handleOpenMainWindowNotification),
+            name: CleanLockAppCommand.openMainWindowNotification,
+            object: nil
+        )
+        center.addObserver(
+            self,
+            selector: #selector(handleStartCleaningNotification),
+            name: CleanLockAppCommand.startCleaningNotification,
+            object: nil
+        )
+        center.addObserver(
+            self,
+            selector: #selector(handleQuitMainNotification),
+            name: CleanLockAppCommand.quitMainNotification,
+            object: nil
+        )
+    }
+
+    private func handleLaunchArguments() {
+        if launchArguments.contains(CleanLockAppCommand.quitMainArgument) {
+            quit()
+            return
+        }
+
+        if launchArguments.contains(CleanLockAppCommand.startCleaningArgument) {
+            startCleaningMode()
+            return
+        }
+
+        if launchArguments.contains(CleanLockAppCommand.openMainWindowArgument) {
+            showMainWindow()
+            return
+        }
+
+        if launchArguments.contains(CleanLockAppCommand.launchedAtLoginArgument) {
+            return
+        }
+
+        showMainWindow()
     }
 
     private func scheduleAutomaticUpdateCheckIfNeeded() {

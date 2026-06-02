@@ -2,19 +2,21 @@ import Foundation
 import ServiceManagement
 
 enum LaunchAtLoginManager {
+    private static let service = SMAppService.loginItem(identifier: CleanLockBundleIdentifier.loginHelper)
+
     static var isEnabled: Bool {
-        SMAppService.mainApp.status == .enabled
+        service.status == .enabled
     }
 
     static func setEnabled(_ enabled: Bool) throws {
         if enabled {
-            if SMAppService.mainApp.status != .enabled {
-                try SMAppService.mainApp.register()
+            if service.status != .enabled {
+                try service.register()
             }
             print("Start at login enabled.")
         } else {
-            if SMAppService.mainApp.status == .enabled {
-                try SMAppService.mainApp.unregister()
+            if service.status == .enabled {
+                try service.unregister()
             }
             print("Start at login disabled.")
         }

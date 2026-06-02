@@ -8,7 +8,9 @@ let package = Package(
         .macOS(.v13)
     ],
     products: [
-        .executable(name: "CleanLock", targets: ["CleanLock"])
+        .executable(name: "CleanLock", targets: ["CleanLock"]),
+        .executable(name: "CleanLockMenuBarAgent", targets: ["CleanLockMenuBarAgent"]),
+        .executable(name: "CleanLockLoginHelper", targets: ["CleanLockLoginHelper"])
     ],
     dependencies: [
         .package(url: "https://github.com/sparkle-project/Sparkle.git", from: "2.9.2")
@@ -20,6 +22,14 @@ let package = Package(
                 .product(name: "Sparkle", package: "Sparkle")
             ],
             path: "Sources/CleanLock"
+        ),
+        .executableTarget(
+            name: "CleanLockMenuBarAgent",
+            path: "Sources/CleanLockMenuBarAgent"
+        ),
+        .executableTarget(
+            name: "CleanLockLoginHelper",
+            path: "Sources/CleanLockLoginHelper"
         )
     ]
 )

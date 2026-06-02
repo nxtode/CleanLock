@@ -23,7 +23,7 @@ CleanLock is a native macOS utility that starts a temporary Cleaning Mode, block
 ## Features
 
 - Native macOS app window with General, Permissions, and About & Support tabs.
-- Optional menu bar icon.
+- Persistent menu bar icon that can stay available after the main app quits.
 - Compact unlock shortcut recorder with reset-to-default support.
 - Auto-unlock duration, including `0` to disable auto-unlock.
 - Overlay styles: Default, Transparent with opacity and tint, and Custom Image.
@@ -101,6 +101,10 @@ Because CleanLock requires sensitive macOS permissions, users should only instal
 4. Clean your keyboard and trackpad.
 5. Use the configured emergency shortcut to exit Cleaning Mode.
 
+CleanLock can stay available in the menu bar even when the main app window is closed or the main app is quit. Use the menu bar item to open CleanLock again or start Cleaning Mode.
+
+To fully exit CleanLock and remove the menu bar icon, choose `Quit CleanLock Completely` from the menu bar item.
+
 ## Default Shortcut
 
 The default unlock shortcut is Left Command + Right Command, displayed as:
@@ -136,6 +140,10 @@ GitHub Releases host the release assets:
 
 The Sparkle private key is stored in the macOS Keychain by Sparkle tooling. Never commit private Sparkle keys. Only the public `SUPublicEDKey` belongs in the app bundle metadata.
 
+## Start at Login
+
+Start at Login starts the menu bar agent only. The main CleanLock window does not open at login. Use the menu bar icon to open CleanLock when you need the full app window.
+
 ## Uninstall
 
 1. Quit CleanLock.
@@ -167,8 +175,8 @@ Save only the printed public `SUPublicEDKey` in `Resources/SparklePublicEDKey.tx
 `script/package_release.sh` creates release artifacts in `dist/`:
 
 - `dist/CleanLock.app`
-- `dist/CleanLock-v0.1.1.zip`
-- `dist/CleanLock-v0.1.1.dmg`
+- `dist/CleanLock-v0.1.2.zip`
+- `dist/CleanLock-v0.1.2.dmg`
 - `dist/CleanLock-latest.zip`
 - `dist/CleanLock-latest.dmg`
 
@@ -177,6 +185,8 @@ Save only the printed public `SUPublicEDKey` in `Resources/SparklePublicEDKey.tx
 - `docs/appcast.xml`
 
 Publish GitHub Pages from the `main` branch and `/docs` folder so the appcast is available at the Sparkle URL.
+
+CleanLock v0.1.2 adds the persistent menu bar agent and updated Start at Login behavior.
 
 ## Known Limitations
 

@@ -147,18 +147,32 @@ struct MainView: View {
                 Toggle("Show CleanLock in menu bar", isOn: Binding(
                     get: { showMenuBarIcon },
                     set: { newValue in
+                        guard !model.startAtLoginEnabled || newValue else {
+                            showMenuBarIcon = true
+                            actions.menuBarPreferenceChanged(true)
+                            return
+                        }
                         showMenuBarIcon = newValue
                         actions.menuBarPreferenceChanged(newValue)
                     }
                 ))
+                .disabled(model.startAtLoginEnabled)
 
                 Toggle("Start CleanLock at login", isOn: Binding(
                     get: { model.startAtLoginEnabled },
                     set: { newValue in
+                        if newValue {
+                            showMenuBarIcon = true
+                            actions.menuBarPreferenceChanged(true)
+                        }
                         model.startAtLoginEnabled = newValue
                         actions.updateStartAtLoginPreference(newValue)
                     }
                 ))
+
+                Text("Start at Login keeps CleanLock available from the menu bar without opening the main window.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
 
                 if let startAtLoginStatusText = model.startAtLoginStatusText {
                     Text(startAtLoginStatusText)
