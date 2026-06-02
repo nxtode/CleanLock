@@ -46,10 +46,10 @@ struct CleaningOverlayView: View {
     private var backgroundView: some View {
         switch appearance.style {
         case .default:
-            Color.black.opacity(0.88)
+            Color.black
                 .ignoresSafeArea()
         case .transparent:
-            Color.black.opacity(appearance.opacity)
+            Color.cleanLockHex(appearance.tintColorHex).opacity(appearance.opacity)
                 .ignoresSafeArea()
         case .customImage:
             if let image = customImage {
@@ -75,5 +75,23 @@ struct CleaningOverlayView: View {
             return nil
         }
         return image
+    }
+}
+
+private extension Color {
+    static func cleanLockHex(_ value: String) -> Color {
+        var hex = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        if hex.hasPrefix("#") {
+            hex.removeFirst()
+        }
+
+        guard hex.count == 6, let rgb = Int(hex, radix: 16) else {
+            return .black
+        }
+
+        let red = Double((rgb >> 16) & 0xff) / 255.0
+        let green = Double((rgb >> 8) & 0xff) / 255.0
+        let blue = Double(rgb & 0xff) / 255.0
+        return Color(red: red, green: green, blue: blue)
     }
 }

@@ -14,6 +14,7 @@ struct MainWindowActions {
     let updateAutomaticUpdatePreference: (Bool) -> Void
     let updateStartAtLoginPreference: (Bool) -> Void
     let menuBarPreferenceChanged: (Bool) -> Void
+    let restartApp: () -> Void
 }
 
 final class MainWindowController: NSWindowController, NSWindowDelegate {

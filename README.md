@@ -10,9 +10,9 @@ Repository: https://github.com/nxtode/CleanLock
 
 - Native macOS app window with General, Permissions, and About & Support tabs.
 - Optional menu bar icon.
-- Custom unlock shortcut.
+- Compact unlock shortcut recorder with reset-to-default support.
 - Auto-unlock duration, including `0` to disable auto-unlock.
-- Overlay styles: Default, Transparent, and Custom Image.
+- Overlay styles: Default, Transparent with opacity and tint, and Custom Image.
 - Start at Login.
 - Manual and automatic update checks through GitHub Releases.
 - Accessibility and Input Monitoring permission detection.
@@ -34,13 +34,13 @@ CleanLock needs two macOS privacy permissions:
 - Accessibility: needed to control and block input.
 - Input Monitoring: needed to observe and intercept keyboard/input events.
 
-macOS requires manual approval for Accessibility and Input Monitoring. CleanLock cannot automatically grant these permissions during installation. The app opens the correct System Settings pages and detects when permissions are granted.
+macOS requires manual approval for Accessibility and Input Monitoring. CleanLock cannot automatically grant these permissions during installation. The app opens the correct System Settings pages, can refresh permission status, and includes a Restart App action for cases where macOS requires a restart after approval.
 
 ## Usage
 
 1. Open CleanLock.
 2. Configure General, Permissions, and About & Support.
-3. Click Start Cleaning Mode.
+3. Click Lock.
 4. Clean your keyboard and trackpad.
 5. Use the configured emergency shortcut to exit Cleaning Mode.
 
@@ -52,12 +52,12 @@ The default unlock shortcut is Left Command + Right Command, displayed as:
 ⌘ ⌘
 ```
 
-This shortcut exits Cleaning Mode only. It does not quit CleanLock.
+Click the shortcut field to start recording immediately. Press Escape or click outside the field to cancel. Custom shortcuts show a small `x` reset control; the default shortcut does not.
 
 ## Overlay Styles
 
-- Default: a clean dark overlay.
-- Transparent: a tinted overlay that lets you keep watching the screen while input is locked.
+- Default: a clean black overlay.
+- Transparent: a tinted overlay with adjustable opacity that lets you keep watching the screen while input is locked.
 - Custom Image: choose an image to use as the overlay background.
 
 Custom images are copied into `Application Support/CleanLock` so the overlay can still load them if the original file moves. If a custom image is missing or unreadable, CleanLock falls back safely to the default overlay.

@@ -9,6 +9,41 @@ private enum MainTab: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+private enum OverlayTint: String, CaseIterable, Identifiable {
+    case black = "#000000"
+    case blue = "#0A84FF"
+    case green = "#30D158"
+    case purple = "#BF5AF2"
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .black:
+            return "Black"
+        case .blue:
+            return "Blue"
+        case .green:
+            return "Green"
+        case .purple:
+            return "Purple"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .black:
+            return .black
+        case .blue:
+            return .blue
+        case .green:
+            return .green
+        case .purple:
+            return .purple
+        }
+    }
+}
+
 struct MainView: View {
     @ObservedObject var model: CleanLockModel
     let actions: MainWindowActions
@@ -16,6 +51,7 @@ struct MainView: View {
     @AppStorage(PreferencesKeys.showMenuBarIcon) private var showMenuBarIcon = true
     @AppStorage(PreferencesKeys.overlayStyle) private var overlayStyleRaw = OverlayStyle.default.rawValue
     @AppStorage(PreferencesKeys.overlayOpacity) private var overlayOpacity = 0.35
+    @AppStorage(PreferencesKeys.overlayTintColorHex) private var overlayTintColorHex = "#000000"
     @AppStorage(PreferencesKeys.customOverlayImagePath) private var customOverlayImagePath = ""
     @State private var selectedTab: MainTab = .general
     @State private var durationText = ""
@@ -34,7 +70,9 @@ struct MainView: View {
             }
             .pickerStyle(.segmented)
             .labelsHidden()
+            .padding(.horizontal, 2)
             .frame(maxWidth: 760)
+            .frame(maxWidth: .infinity)
 
             Divider()
                 .frame(maxWidth: 760)
@@ -88,7 +126,7 @@ struct MainView: View {
         sectionCard {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
-                    Text("Current status")
+                    Text("Status")
                         .font(.headline)
                     Spacer()
                     Text(model.statusText)
@@ -100,11 +138,12 @@ struct MainView: View {
                     saveDuration()
                     actions.startCleaning()
                 }) {
-                    Text(model.isCleaning ? "Cleaning Mode Active" : "Start Cleaning Mode")
+                    Text(model.isCleaning ? "Cleaning Mode Active" : "Lock")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
+                .frame(width: 360)
                 .disabled(model.isCleaning || model.isStoppingCleaningMode || !model.permissionStatus.allGranted)
 
                 if let inlineMessage = model.inlineMessage {
@@ -112,7 +151,7 @@ struct MainView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 } else if !model.permissionStatus.allGranted {
-                    Text("Enable permissions below to start Cleaning Mode.")
+                    Text("Enable permissions to start Cleaning")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -168,7 +207,7 @@ struct MainView: View {
     private var unlockShortcutSection: some View {
         sectionCard("Unlock Shortcut") {
             VStack(alignment: .leading, spacing: 12) {
-                HStack(spacing: 10) {
+                ZStack(alignment: .topTrailing) {
                     Button(action: beginRecording) {
                         HStack(spacing: 8) {
                             keyCaps(for: isRecordingShortcut ? liveShortcut : shortcut)
@@ -179,8 +218,9 @@ struct MainView: View {
                                     .foregroundStyle(.secondary)
                             }
                         }
-                        .padding(.horizontal, 10)
-                        .frame(height: 38)
+                        .padding(.leading, 10)
+                        .padding(.trailing, shouldShowShortcutReset ? 34 : 10)
+                        .frame(height: 40)
                         .frame(maxWidth: .infinity)
                         .background(.quaternary.opacity(0.55))
                         .clipShape(RoundedRectangle(cornerRadius: 8))
@@ -191,16 +231,22 @@ struct MainView: View {
                     }
                     .buttonStyle(.plain)
 
-                    Button(action: resetShortcutToDefault) {
-                        Image(systemName: "xmark.circle.fill")
-                            .imageScale(.medium)
+                    if shouldShowShortcutReset {
+                        Button(action: resetShortcutToDefault) {
+                            Text("x")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(.secondary)
+                                .frame(width: 22, height: 22)
+                        }
+                        .buttonStyle(.plain)
+                        .help("Reset to default")
+                        .padding(.top, 7)
+                        .padding(.trailing, 8)
                     }
-                    .buttonStyle(.plain)
-                    .help("Reset to default")
                 }
                 .frame(maxWidth: .infinity)
 
-                Text("Use at least 2 keys. This shortcut only exits Cleaning Mode.")
+                Text("Use at least 2 keys")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
@@ -210,6 +256,7 @@ struct MainView: View {
                         .foregroundStyle(.secondary)
                     ShortcutRecorderView(
                         onEvent: recordEvent,
+                        onCancel: cancelRecording,
                         onDisappear: cancelRecording
                     )
                     .frame(width: 1, height: 1)
@@ -237,11 +284,25 @@ struct MainView: View {
                 .frame(maxWidth: .infinity)
 
                 if currentOverlayStyle == .transparent {
-                    VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: 10) {
                         Slider(value: opacityBinding, in: 0.10...0.70)
                         Text("Opacity: \(Int(overlayOpacity * 100))%")
                             .font(.caption)
                             .foregroundStyle(.secondary)
+
+                        Picker("Tint color", selection: overlayTintBinding) {
+                            ForEach(OverlayTint.allCases) { tint in
+                                HStack(spacing: 6) {
+                                    Circle()
+                                        .fill(tint.color)
+                                        .frame(width: 10, height: 10)
+                                    Text(tint.title)
+                                }
+                                .tag(tint)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                        .frame(maxWidth: .infinity)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -296,14 +357,18 @@ struct MainView: View {
                 )
             }
 
-            sectionCard("Permission Instructions") {
-                VStack(alignment: .leading, spacing: 10) {
+            sectionCard {
+                VStack(alignment: .leading, spacing: 12) {
                     Text(permissionHelpText)
                         .foregroundStyle(.secondary)
 
-                    Button("Refresh Permission Status", action: actions.refreshPermissions)
+                    HStack(spacing: 10) {
+                        Button("Refresh Permission Status", action: actions.refreshPermissions)
+                        Button("Restart App", action: actions.restartApp)
+                        Spacer()
+                    }
 
-                    Text("After enabling permissions in System Settings, quit and reopen CleanLock if macOS asks you to.")
+                    Text("After enabling permissions in System Settings, refresh status. Restart CleanLock if macOS asks you to.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -399,7 +464,7 @@ struct MainView: View {
     private func sectionCard<Content: View>(_ title: String? = nil, @ViewBuilder content: () -> Content) -> some View {
         GroupBox {
             content()
-                .padding(.top, title == nil ? 0 : 4)
+                .padding(.vertical, 6)
                 .frame(maxWidth: .infinity, alignment: .leading)
         } label: {
             if let title {
@@ -453,8 +518,8 @@ struct MainView: View {
 
     private var permissionHelpText: String {
         model.permissionStatus.allGranted
-            ? "Everything is ready. You can start Cleaning Mode."
-            : "Enable permissions below to start Cleaning Mode."
+            ? "Everything is ready. You can start Cleaning."
+            : "Enable permissions to start Cleaning"
     }
 
     private var liveShortcut: EmergencyShortcut {
@@ -463,6 +528,14 @@ struct MainView: View {
 
     private var currentOverlayStyle: OverlayStyle {
         OverlayStyle(rawValue: overlayStyleRaw) ?? .default
+    }
+
+    private var currentOverlayTint: OverlayTint {
+        OverlayTint(rawValue: overlayTintColorHex) ?? .black
+    }
+
+    private var shouldShowShortcutReset: Bool {
+        !isRecordingShortcut && shortcut != .defaultShortcut
     }
 
     private var selectedImageName: String {
@@ -491,6 +564,16 @@ struct MainView: View {
             set: { newValue in
                 overlayOpacity = min(max(newValue, 0.10), 0.70)
                 print("Transparent overlay opacity changed: \(overlayOpacity)")
+            }
+        )
+    }
+
+    private var overlayTintBinding: Binding<OverlayTint> {
+        Binding(
+            get: { currentOverlayTint },
+            set: { newValue in
+                overlayTintColorHex = newValue.rawValue
+                print("Transparent overlay tint changed: \(newValue.title)")
             }
         )
     }

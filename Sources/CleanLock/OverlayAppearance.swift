@@ -23,6 +23,7 @@ enum OverlayStyle: String, CaseIterable, Identifiable {
 struct OverlayAppearance {
     let style: OverlayStyle
     let opacity: Double
+    let tintColorHex: String
     let customImagePath: String?
 
     static func load() -> OverlayAppearance {
@@ -32,6 +33,7 @@ struct OverlayAppearance {
         return OverlayAppearance(
             style: style,
             opacity: min(max(savedOpacity ?? 0.35, 0.10), 0.70),
+            tintColorHex: UserDefaults.standard.string(forKey: PreferencesKeys.overlayTintColorHex) ?? "#000000",
             customImagePath: UserDefaults.standard.string(forKey: PreferencesKeys.customOverlayImagePath)
         )
     }

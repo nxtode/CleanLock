@@ -47,7 +47,7 @@ final class MenuBarController {
         let openItem = NSMenuItem(title: "Open CleanLock", action: #selector(openCleanLock), keyEquivalent: "")
         openItem.target = self
 
-        let quitItem = NSMenuItem(title: "Quit CleanLock", action: #selector(quit), keyEquivalent: "q")
+        let quitItem = NSMenuItem(title: "Quit CleanLock", action: #selector(quit), keyEquivalent: "")
         quitItem.target = self
 
         menu.addItem(startItem)

@@ -60,7 +60,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         refreshPermissionStatus()
         guard model.permissionStatus.allGranted else {
-            model.inlineMessage = "Enable permissions below to start Cleaning Mode."
+            model.inlineMessage = "Enable permissions to start Cleaning"
             print("Start blocked because permissions are missing.")
             showMainWindow()
             return
@@ -153,7 +153,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     },
                     menuBarPreferenceChanged: { [weak self] isEnabled in
                         self?.configureMenuBarVisibility(isEnabled)
-                    }
+                    },
+                    restartApp: { [weak self] in self?.restartApp() }
                 )
             )
         }
@@ -166,10 +167,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.terminate(nil)
     }
 
+    func restartApp() {
+        print("Restart CleanLock requested.")
+        stopCleaningMode()
+
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+        process.arguments = ["-n", Bundle.main.bundleURL.path]
+
+        do {
+            try process.run()
+            NSApp.terminate(nil)
+        } catch {
+            model.inlineMessage = "CleanLock could not restart. Quit and reopen it manually."
+            print("Restart CleanLock failed: \(error.localizedDescription)")
+            showMainWindow()
+        }
+    }
+
     func refreshPermissionStatus() {
         permissionManager.logPermissionStatus()
         model.permissionStatus = permissionManager.status
-        if model.permissionStatus.allGranted, model.inlineMessage == "Enable permissions below to start Cleaning Mode." {
+        if model.permissionStatus.allGranted,
+           model.inlineMessage == "Enable permissions to start Cleaning"
+            || model.inlineMessage == "Enable permissions below to start Cleaning Mode." {
             model.inlineMessage = nil
         }
     }
@@ -266,6 +287,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             PreferencesKeys.emergencyShortcutKeyCodes: [55, 54],
             PreferencesKeys.overlayStyle: OverlayStyle.default.rawValue,
             PreferencesKeys.overlayOpacity: 0.35,
+            PreferencesKeys.overlayTintColorHex: "#000000",
             PreferencesKeys.automaticUpdateChecksEnabled: true
         ])
     }
@@ -347,6 +369,7 @@ enum PreferencesKeys {
     static let emergencyShortcutKeyCodes = "emergencyShortcutKeyCodes"
     static let overlayStyle = "overlayStyle"
     static let overlayOpacity = "overlayOpacity"
+    static let overlayTintColorHex = "overlayTintColorHex"
     static let customOverlayImagePath = "customOverlayImagePath"
     static let automaticUpdateChecksEnabled = "automaticUpdateChecksEnabled"
     static let lastUpdateCheckDate = "lastUpdateCheckDate"
