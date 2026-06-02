@@ -11,7 +11,7 @@
             <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
             <description sparkle:format="markdown"><![CDATA[Initial public release of CleanLock for macOS.
 ]]></description>
-            <enclosure url="https://github.com/nxtode/CleanLock/releases/download/v0.1.0/CleanLock-v0.1.0.zip" length="2878426" type="application/octet-stream" sparkle:edSignature="pVjpqaxTDLGqP4EF3FncLPL7oPa+aFMqbNVPGZ2VhoFmEvjGcNMDGAPOcR6qIUOI/x6LkZd/V6XpOFH+FdfrAw=="/>
+            <enclosure url="https://github.com/nxtode/CleanLock/releases/download/v0.1.0/CleanLock-v0.1.0.zip" length="2878426" type="application/octet-stream" sparkle:edSignature="CnmJgTuzAZgXCvDkK/Sy0klrztRMpThZWUWfAQaGxMu5e8k/w/UIwNJcbhEBkGPfOZoyUalKm1C3w5blRwbgBA=="/>
         </item>
     </channel>
 </rss>
