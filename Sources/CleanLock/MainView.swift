@@ -35,6 +35,7 @@ struct MainView: View {
             }
             .pickerStyle(.segmented)
             .labelsHidden()
+            .frame(maxWidth: .infinity)
 
             Divider()
 
@@ -42,7 +43,7 @@ struct MainView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
         .padding(24)
-        .frame(minWidth: 680, minHeight: 560)
+        .frame(minWidth: 720, minHeight: 520)
         .onAppear {
             durationText = "\(UserDefaults.standard.sanitizedCleaningDuration())"
             shortcut = EmergencyShortcut.load()

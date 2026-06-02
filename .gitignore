@@ -3,3 +3,7 @@ dist/
 .DS_Store
 *.xcuserdata/
 DerivedData/
+*.dmg
+*.zip
+xcuserdata/
+*.xcuserstate

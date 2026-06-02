@@ -31,8 +31,12 @@ final class MenuBarController {
 
     private func configureStatusItem() {
         guard let button = statusItem?.button else { return }
-        button.image = NSImage(systemSymbolName: "keyboard", accessibilityDescription: "CleanLock")
-        button.image?.isTemplate = true
+        let image = Bundle.main.url(forResource: "MenuBarIconTemplate", withExtension: "png")
+            .flatMap(NSImage.init(contentsOf:))
+            ?? NSImage(systemSymbolName: "keyboard", accessibilityDescription: "CleanLock")
+        image?.size = NSSize(width: 18, height: 18)
+        image?.isTemplate = true
+        button.image = image
         button.toolTip = "CleanLock"
     }
 
