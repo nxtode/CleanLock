@@ -59,10 +59,14 @@ private final class MenuBarAgentDelegate: NSObject, NSApplicationDelegate {
         }
 
         let menu = NSMenu()
-        menu.addItem(NSMenuItem(title: "Lock", action: #selector(lock), keyEquivalent: ""))
-        menu.addItem(NSMenuItem(title: "Open CleanLock", action: #selector(openCleanLock), keyEquivalent: ""))
+        let appNameItem = NSMenuItem(title: "CleanLock", action: nil, keyEquivalent: "")
+        appNameItem.isEnabled = false
+        menu.addItem(appNameItem)
         menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: "Quit CleanLock Completely", action: #selector(quitCompletely), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: "Lock", action: #selector(lock), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: "Preferences", action: #selector(openCleanLock), keyEquivalent: ""))
+        menu.addItem(.separator())
+        menu.addItem(NSMenuItem(title: "Quit", action: #selector(quitCompletely), keyEquivalent: ""))
 
         for item in menu.items {
             item.target = self

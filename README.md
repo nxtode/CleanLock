@@ -101,9 +101,9 @@ Because CleanLock requires sensitive macOS permissions, users should only instal
 4. Clean your keyboard and trackpad.
 5. Use the configured emergency shortcut to exit Cleaning Mode.
 
-CleanLock can stay available in the menu bar even when the main app window is closed or the main app is quit. Use the menu bar item to open CleanLock again or start Cleaning Mode.
+CleanLock can stay available in the menu bar even when the main app window is closed or the main app is quit. Use menu bar > Preferences to reopen CleanLock settings, or menu bar > Lock to start Cleaning Mode.
 
-To fully exit CleanLock and remove the menu bar icon, choose `Quit CleanLock Completely` from the menu bar item.
+To fully exit CleanLock and remove the menu bar icon, choose menu bar > Quit.
 
 ## Default Shortcut
 
@@ -175,8 +175,8 @@ Save only the printed public `SUPublicEDKey` in `Resources/SparklePublicEDKey.tx
 `script/package_release.sh` creates release artifacts in `dist/`:
 
 - `dist/CleanLock.app`
-- `dist/CleanLock-v0.1.2.zip`
-- `dist/CleanLock-v0.1.2.dmg`
+- `dist/CleanLock-v0.1.3.zip`
+- `dist/CleanLock-v0.1.3.dmg`
 - `dist/CleanLock-latest.zip`
 - `dist/CleanLock-latest.dmg`
 
@@ -186,7 +186,7 @@ Save only the printed public `SUPublicEDKey` in `Resources/SparklePublicEDKey.tx
 
 Publish GitHub Pages from the `main` branch and `/docs` folder so the appcast is available at the Sparkle URL.
 
-CleanLock v0.1.2 adds the persistent menu bar agent and updated Start at Login behavior.
+CleanLock v0.1.3 keeps the persistent menu bar behavior and uses a CleanLock-titled menu with simpler actions: Lock, Preferences, and Quit.
 
 ## Known Limitations
 
