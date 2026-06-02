@@ -93,6 +93,8 @@ Only install CleanLock from the official GitHub Releases page unless you trust a
 
 Because CleanLock requires sensitive macOS permissions, users should only install builds from sources they trust. The official CleanLock builds are published from the NXTode repository. Forks and modified versions should be reviewed before installation.
 
+CleanLock protects menu bar commands with a local command token shared between its bundled main app, menu bar agent, and login helper. Release packaging also verifies bundle identifiers, Sparkle metadata, helper apps, and top-level ZIP structure before artifacts are produced.
+
 ## Usage
 
 1. Open CleanLock.
@@ -180,6 +182,8 @@ Save only the printed public `SUPublicEDKey` in `Resources/SparklePublicEDKey.tx
 - `dist/CleanLock-latest.zip`
 - `dist/CleanLock-latest.dmg`
 
+Release packaging builds with `swift build -c release` and stages the release executables.
+
 `script/sparkle_generate_appcast.sh` writes:
 
 - `docs/appcast.xml`
@@ -192,6 +196,8 @@ CleanLock v0.1.3 keeps the persistent menu bar behavior and uses a CleanLock-tit
 
 - macOS requires manual Accessibility and Input Monitoring approval.
 - Some media, brightness, or hardware-level keys may be handled by macOS before apps can intercept them.
+- Caps Lock is blocked while the event tap receives it, and CleanLock attempts to restore the original state afterward, but some keyboards may apply Caps Lock below the app event layer.
+- Cursor movement is disassociated from the mouse/trackpad during Cleaning Mode and restored when Cleaning Mode stops.
 - Unsigned or unnotarized builds may trigger macOS security warnings.
 - Permissions may require quitting and reopening CleanLock after approval.
 - CleanLock is intended for brief cleaning sessions, not as a security lock.

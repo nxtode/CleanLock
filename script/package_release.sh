@@ -5,17 +5,20 @@ export COPYFILE_DISABLE=1
 APP_NAME="CleanLock"
 PRODUCT_NAME="CleanLock"
 BUNDLE_ID="dev.nxtode.cleanlock"
+MENU_BAR_AGENT_BUNDLE_ID="dev.nxtode.cleanlock.menubar"
+LOGIN_HELPER_BUNDLE_ID="dev.nxtode.cleanlock.loginhelper"
 VERSION="0.1.3"
 BUILD="4"
 APPCAST_URL="https://nxtode.github.io/CleanLock/appcast.xml"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DIST_DIR="$ROOT_DIR/dist"
 APP_BUNDLE="$DIST_DIR/$APP_NAME.app"
-EXECUTABLE="$ROOT_DIR/.build/debug/$PRODUCT_NAME"
+BUILD_CONFIGURATION="release"
+EXECUTABLE="$ROOT_DIR/.build/$BUILD_CONFIGURATION/$PRODUCT_NAME"
 MENU_BAR_AGENT_NAME="CleanLockMenuBarAgent"
 LOGIN_HELPER_NAME="CleanLockLoginHelper"
-MENU_BAR_AGENT_EXECUTABLE="$ROOT_DIR/.build/debug/$MENU_BAR_AGENT_NAME"
-LOGIN_HELPER_EXECUTABLE="$ROOT_DIR/.build/debug/$LOGIN_HELPER_NAME"
+MENU_BAR_AGENT_EXECUTABLE="$ROOT_DIR/.build/$BUILD_CONFIGURATION/$MENU_BAR_AGENT_NAME"
+LOGIN_HELPER_EXECUTABLE="$ROOT_DIR/.build/$BUILD_CONFIGURATION/$LOGIN_HELPER_NAME"
 LOGIN_ITEMS_DIR="$APP_BUNDLE/Contents/Library/LoginItems"
 MENU_BAR_AGENT_BUNDLE="$LOGIN_ITEMS_DIR/$MENU_BAR_AGENT_NAME.app"
 LOGIN_HELPER_BUNDLE="$LOGIN_ITEMS_DIR/$LOGIN_HELPER_NAME.app"
@@ -29,6 +32,8 @@ PACKAGE_DIR="$DIST_DIR/package"
 TEMP_DMG_PATH="$PACKAGE_DIR/$APP_NAME-temp.dmg"
 VOLUME_DIR="$PACKAGE_DIR/$APP_NAME"
 MOUNT_DIR="$PACKAGE_DIR/mount"
+ZIP_CHECK_DIR="$PACKAGE_DIR/zipcheck"
+PLIST_BUDDY="/usr/libexec/PlistBuddy"
 
 require_tool() {
   if ! command -v "$1" >/dev/null 2>&1; then
@@ -43,9 +48,13 @@ require_tool hdiutil
 require_tool osascript
 require_tool install_name_tool
 require_tool codesign
+if [[ ! -x "$PLIST_BUDDY" ]]; then
+  echo "Missing required tool: $PLIST_BUDDY" >&2
+  exit 1
+fi
 
 find_sparkle_framework() {
-  find "$ROOT_DIR/.build" -path "*/debug/Sparkle.framework" -type d | head -1
+  find "$ROOT_DIR/.build" -path "*/$BUILD_CONFIGURATION/Sparkle.framework" -type d | head -1
 }
 
 read_sparkle_public_key() {
@@ -56,6 +65,81 @@ read_sparkle_public_key() {
   fi
 
   tr -d '\n\r[:space:]' < "$SPARKLE_PUBLIC_KEY_FILE"
+}
+
+plist_value() {
+  "$PLIST_BUDDY" -c "Print :$2" "$1" 2>/dev/null || true
+}
+
+assert_plist_value() {
+  local plist="$1"
+  local key="$2"
+  local expected="$3"
+  local actual
+  actual="$(plist_value "$plist" "$key")"
+  if [[ "$actual" != "$expected" ]]; then
+    echo "Metadata check failed for $plist: $key expected '$expected', got '$actual'." >&2
+    exit 1
+  fi
+}
+
+assert_plist_nonempty() {
+  local plist="$1"
+  local key="$2"
+  local actual
+  actual="$(plist_value "$plist" "$key")"
+  if [[ -z "$actual" ]]; then
+    echo "Metadata check failed for $plist: $key is empty or missing." >&2
+    exit 1
+  fi
+}
+
+verify_no_old_bundle_identifiers() {
+  local old_bundle_id
+  old_bundle_id="$(printf "%s.%s.%s" "dev" "asuncion" "cleanlock")"
+  local search_paths=(
+    "$ROOT_DIR/Sources"
+    "$ROOT_DIR/script"
+    "$ROOT_DIR/Package.swift"
+    "$ROOT_DIR/README.md"
+    "$ROOT_DIR/docs"
+  )
+
+  if grep -R -F "$old_bundle_id" "${search_paths[@]}" >/dev/null 2>&1; then
+    echo "Old bundle identifier found in source/scripts/docs." >&2
+    grep -R -n -F "$old_bundle_id" "${search_paths[@]}" >&2 || true
+    exit 1
+  fi
+}
+
+verify_bundle_metadata() {
+  local app_plist="$APP_BUNDLE/Contents/Info.plist"
+  local agent_plist="$MENU_BAR_AGENT_BUNDLE/Contents/Info.plist"
+  local helper_plist="$LOGIN_HELPER_BUNDLE/Contents/Info.plist"
+
+  [[ -d "$MENU_BAR_AGENT_BUNDLE" ]] || { echo "Missing menu bar agent bundle: $MENU_BAR_AGENT_BUNDLE" >&2; exit 1; }
+  [[ -d "$LOGIN_HELPER_BUNDLE" ]] || { echo "Missing login helper bundle: $LOGIN_HELPER_BUNDLE" >&2; exit 1; }
+  [[ -x "$MENU_BAR_AGENT_BUNDLE/Contents/MacOS/$MENU_BAR_AGENT_NAME" ]] || { echo "Missing menu bar agent executable." >&2; exit 1; }
+  [[ -x "$LOGIN_HELPER_BUNDLE/Contents/MacOS/$LOGIN_HELPER_NAME" ]] || { echo "Missing login helper executable." >&2; exit 1; }
+
+  assert_plist_value "$app_plist" "CFBundleIdentifier" "$BUNDLE_ID"
+  assert_plist_value "$agent_plist" "CFBundleIdentifier" "$MENU_BAR_AGENT_BUNDLE_ID"
+  assert_plist_value "$helper_plist" "CFBundleIdentifier" "$LOGIN_HELPER_BUNDLE_ID"
+  assert_plist_value "$app_plist" "SUFeedURL" "$APPCAST_URL"
+  assert_plist_nonempty "$app_plist" "SUPublicEDKey"
+  assert_plist_nonempty "$app_plist" "CFBundleVersion"
+  assert_plist_nonempty "$agent_plist" "CFBundleVersion"
+  assert_plist_nonempty "$helper_plist" "CFBundleVersion"
+}
+
+verify_zip_top_level_app() {
+  rm -rf "$ZIP_CHECK_DIR"
+  mkdir -p "$ZIP_CHECK_DIR"
+  ditto -x -k "$ZIP_PATH" "$ZIP_CHECK_DIR"
+  if [[ ! -d "$ZIP_CHECK_DIR/$APP_NAME.app" ]]; then
+    echo "ZIP verification failed: $APP_NAME.app is not at the top level." >&2
+    exit 1
+  fi
 }
 
 stage_helper_app() {
@@ -108,12 +192,12 @@ rm -rf "$APP_BUNDLE" "$ZIP_PATH" "$DMG_PATH" "$LATEST_ZIP_PATH" "$LATEST_DMG_PAT
 mkdir -p "$APP_BUNDLE/Contents/MacOS" "$APP_BUNDLE/Contents/Resources" "$APP_BUNDLE/Contents/Frameworks" "$LOGIN_ITEMS_DIR" "$VOLUME_DIR"
 
 echo "Building $APP_NAME..."
-swift build
+swift build -c "$BUILD_CONFIGURATION"
 
 echo "Staging app bundle..."
 cp "$EXECUTABLE" "$APP_BUNDLE/Contents/MacOS/$APP_NAME"
-stage_helper_app "$MENU_BAR_AGENT_NAME" "$MENU_BAR_AGENT_EXECUTABLE" "$MENU_BAR_AGENT_BUNDLE" "dev.nxtode.cleanlock.menubar"
-stage_helper_app "$LOGIN_HELPER_NAME" "$LOGIN_HELPER_EXECUTABLE" "$LOGIN_HELPER_BUNDLE" "dev.nxtode.cleanlock.loginhelper"
+stage_helper_app "$MENU_BAR_AGENT_NAME" "$MENU_BAR_AGENT_EXECUTABLE" "$MENU_BAR_AGENT_BUNDLE" "$MENU_BAR_AGENT_BUNDLE_ID"
+stage_helper_app "$LOGIN_HELPER_NAME" "$LOGIN_HELPER_EXECUTABLE" "$LOGIN_HELPER_BUNDLE" "$LOGIN_HELPER_BUNDLE_ID"
 SPARKLE_FRAMEWORK="$(find_sparkle_framework)"
 if [[ -z "$SPARKLE_FRAMEWORK" ]]; then
   echo "Sparkle.framework was not found in SwiftPM build products." >&2
@@ -168,10 +252,14 @@ cat > "$APP_BUNDLE/Contents/Info.plist" <<EOF
 </plist>
 EOF
 
+verify_no_old_bundle_identifiers
+verify_bundle_metadata
+
 codesign --force --deep --sign - "$APP_BUNDLE"
 
 echo "Creating ZIP..."
 ditto -c -k --norsrc --keepParent "$APP_BUNDLE" "$ZIP_PATH"
+verify_zip_top_level_app
 
 echo "Creating DMG..."
 cp -R "$APP_BUNDLE" "$VOLUME_DIR/"

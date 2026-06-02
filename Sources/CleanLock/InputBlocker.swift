@@ -10,6 +10,8 @@ final class InputBlocker {
     private var pressedKeyCodes = Set<Int64>()
     private var hasTriggeredEmergencyUnlock = false
     private var isStoppingAfterEmergencyUnlock = false
+    private var isCursorPositionAssociationFrozen = false
+    private var originalCapsLockEnabled: Bool?
 
     var isRunning: Bool {
         guard let eventTap else { return false }
@@ -23,6 +25,7 @@ final class InputBlocker {
         self.emergencyShortcut = emergencyShortcut
         hasTriggeredEmergencyUnlock = false
         isStoppingAfterEmergencyUnlock = false
+        originalCapsLockEnabled = Self.isCapsLockEnabled
         emergencyUnlock = onEmergencyUnlock
 
         let eventMask = InputBlocker.blockedEvents.reduce(CGEventMask(0)) { mask, type in
@@ -34,12 +37,14 @@ final class InputBlocker {
 
         guard let tap = tapAndLocation.tap else {
             emergencyUnlock = nil
+            restoreCursorPositionAssociation()
             return false
         }
 
         guard let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0) else {
             CFMachPortInvalidate(tap)
             emergencyUnlock = nil
+            restoreCursorPositionAssociation()
             return false
         }
 
@@ -47,6 +52,7 @@ final class InputBlocker {
         runLoopSource = source
         CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
         CGEvent.tapEnable(tap: tap, enable: true)
+        freezeCursorPositionAssociation()
         print("Event tap started.")
         print("\(tapAndLocation.usedHIDTap ? "HID event tap created." : "Session event tap fallback used.")")
         return true
@@ -69,6 +75,9 @@ final class InputBlocker {
         pressedKeyCodes.removeAll()
         hasTriggeredEmergencyUnlock = false
         isStoppingAfterEmergencyUnlock = false
+        restoreCapsLockStateIfNeeded()
+        originalCapsLockEnabled = nil
+        restoreCursorPositionAssociation()
         if wasRunning {
             print("Event tap stopped.")
         }
@@ -98,6 +107,11 @@ final class InputBlocker {
                     print("Emergency unlock consumed.")
                 }
             }
+            return nil
+        }
+
+        if Self.isCapsLockEvent(event: event, type: type) {
+            print("Caps Lock event blocked during Cleaning Mode.")
             return nil
         }
 
@@ -137,6 +151,40 @@ final class InputBlocker {
         } else {
             print("System/media key event blocked")
         }
+    }
+
+    private func freezeCursorPositionAssociation() {
+        let error = CGAssociateMouseAndMouseCursorPosition(boolean_t(0))
+        if error == .success {
+            isCursorPositionAssociationFrozen = true
+            print("Cursor movement association frozen.")
+        } else {
+            print("Cursor movement association freeze failed: \(error.rawValue)")
+        }
+    }
+
+    private func restoreCursorPositionAssociation() {
+        let error = CGAssociateMouseAndMouseCursorPosition(boolean_t(1))
+        if error == .success {
+            if isCursorPositionAssociationFrozen {
+                print("Cursor movement association restored.")
+            }
+        } else {
+            print("Cursor movement association restore failed: \(error.rawValue)")
+        }
+        isCursorPositionAssociationFrozen = false
+    }
+
+    private func restoreCapsLockStateIfNeeded() {
+        guard let originalCapsLockEnabled else { return }
+        let currentCapsLockEnabled = Self.isCapsLockEnabled
+        guard currentCapsLockEnabled != originalCapsLockEnabled else {
+            print("Caps Lock state unchanged during Cleaning Mode.")
+            return
+        }
+
+        print("Attempting to restore Caps Lock state to \(originalCapsLockEnabled ? "on" : "off").")
+        Self.postCapsLockToggle()
     }
 
     private static func createTap(eventMask: CGEventMask, userInfo: UnsafeMutableRawPointer) -> (tap: CFMachPort?, usedHIDTap: Bool) {
@@ -181,6 +229,31 @@ final class InputBlocker {
     ]
 
     private static let systemDefinedEventType = CGEventType(rawValue: 14)!
+    private static let capsLockKeyCode: CGKeyCode = 57
+
+    private static var isCapsLockEnabled: Bool {
+        CGEventSource.keyState(.combinedSessionState, key: capsLockKeyCode)
+    }
+
+    private static func isCapsLockEvent(event: CGEvent, type: CGEventType) -> Bool {
+        guard type == .keyDown || type == .keyUp || type == .flagsChanged else { return false }
+        return CGKeyCode(event.getIntegerValueField(.keyboardEventKeycode)) == capsLockKeyCode
+    }
+
+    private static func postCapsLockToggle() {
+        guard
+            let source = CGEventSource(stateID: .combinedSessionState),
+            let keyDown = CGEvent(keyboardEventSource: source, virtualKey: capsLockKeyCode, keyDown: true),
+            let keyUp = CGEvent(keyboardEventSource: source, virtualKey: capsLockKeyCode, keyDown: false)
+        else {
+            print("Caps Lock restore could not create keyboard events.")
+            return
+        }
+
+        keyDown.post(tap: .cghidEventTap)
+        keyUp.post(tap: .cghidEventTap)
+        print("Caps Lock restore event posted.")
+    }
 
     private static let eventTapCallback: CGEventTapCallBack = { _, type, event, userInfo in
         guard let userInfo else { return nil }

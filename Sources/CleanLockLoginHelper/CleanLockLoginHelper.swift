@@ -1,4 +1,5 @@
 import AppKit
+import CleanLockShared
 import Foundation
 
 @main
@@ -29,6 +30,11 @@ enum CleanLockLoginHelperMain {
         let url = Bundle.main.bundleURL
             .deletingLastPathComponent()
             .appendingPathComponent("CleanLockMenuBarAgent.app")
-        return FileManager.default.fileExists(atPath: url.path) ? url : nil
+        guard FileManager.default.fileExists(atPath: url.path) else { return nil }
+        guard Bundle(url: url)?.bundleIdentifier == CleanLockBundleIdentifier.menuBarAgent else {
+            print("CleanLockMenuBarAgent bundle identifier did not match \(CleanLockBundleIdentifier.menuBarAgent): \(url.path)")
+            return nil
+        }
+        return url
     }
 }

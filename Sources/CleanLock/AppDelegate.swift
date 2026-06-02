@@ -1,4 +1,5 @@
 import AppKit
+import CleanLockShared
 import SwiftUI
 
 @MainActor
@@ -14,6 +15,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var isCleaning = false
     private var isStoppingCleaningMode = false
     private var launchArguments: Set<String> = []
+    private var launchArgumentList: [String] = []
 
     private var duration: Int {
         UserDefaults.standard.sanitizedCleaningDuration()
@@ -21,7 +23,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         print("App launch.")
-        launchArguments = Set(ProcessInfo.processInfo.arguments.dropFirst())
+        launchArgumentList = Array(ProcessInfo.processInfo.arguments.dropFirst())
+        launchArguments = Set(launchArgumentList)
+        _ = CleanLockCommandTokenStore.loadOrCreateToken()
         NSApp.setActivationPolicy(.regular)
         registerDefaultPreferences()
         refreshPermissionStatus()
@@ -58,15 +62,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         refreshPermissionStatus()
     }
 
-    @objc private func handleOpenMainWindowNotification() {
+    @objc private func handleOpenMainWindowNotification(_ notification: Notification) {
         showMainWindow()
     }
 
-    @objc private func handleStartCleaningNotification() {
+    @objc private func handleStartCleaningNotification(_ notification: Notification) {
+        guard notification.hasValidCleanLockCommandToken else {
+            print("Rejected start cleaning notification with missing or invalid command token.")
+            return
+        }
         startCleaningMode()
     }
 
-    @objc private func handleQuitMainNotification() {
+    @objc private func handleQuitMainNotification(_ notification: Notification) {
+        guard notification.hasValidCleanLockCommandToken else {
+            print("Rejected quit main notification with missing or invalid command token.")
+            return
+        }
         quit()
     }
 
@@ -391,11 +403,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func handleLaunchArguments() {
         if launchArguments.contains(CleanLockAppCommand.quitMainArgument) {
+            guard launchArgumentsContainValidCommandToken else {
+                print("Rejected quit main launch argument with missing or invalid command token.")
+                showMainWindow()
+                return
+            }
             quit()
             return
         }
 
         if launchArguments.contains(CleanLockAppCommand.startCleaningArgument) {
+            guard launchArgumentsContainValidCommandToken else {
+                print("Rejected start cleaning launch argument with missing or invalid command token.")
+                showMainWindow()
+                return
+            }
             startCleaningMode()
             return
         }
@@ -410,6 +432,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         showMainWindow()
+    }
+
+    private var launchArgumentsContainValidCommandToken: Bool {
+        CleanLockCommandTokenStore.validateToken(
+            launchArgumentList.cleanLockArgumentValue(after: CleanLockAppCommand.commandTokenArgument)
+        )
     }
 
     private func scheduleAutomaticUpdateCheckIfNeeded() {
@@ -450,6 +478,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func updateOverlay() {
         overlayWindow?.updateRemainingSeconds(remainingSeconds)
+    }
+}
+
+private extension Notification {
+    var hasValidCleanLockCommandToken: Bool {
+        let token = userInfo?[CleanLockAppCommand.commandTokenUserInfoKey] as? String
+        return CleanLockCommandTokenStore.validateToken(token)
     }
 }
 

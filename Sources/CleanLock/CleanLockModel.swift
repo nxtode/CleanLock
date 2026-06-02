@@ -3,7 +3,11 @@ import Foundation
 final class CleanLockModel: ObservableObject {
     @Published var isCleaning = false
     @Published var isStoppingCleaningMode = false
-    @Published var permissionStatus = PermissionStatus(accessibilityGranted: false, inputMonitoringGranted: false)
+    @Published var permissionStatus = PermissionStatus(
+        accessibilityGranted: false,
+        inputMonitoringGranted: false,
+        inputEventTapAvailable: false
+    )
     @Published var inlineMessage: String?
     @Published var updateCheckStatus: UpdateCheckStatus = .idle
     @Published var updateStatusText = UpdateCheckStatus.idle.rawValue

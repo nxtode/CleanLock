@@ -311,7 +311,7 @@ struct MainView: View {
             sectionCard("Input Monitoring") {
                 permissionRow(
                     title: "Input Monitoring",
-                    granted: model.permissionStatus.inputMonitoringGranted,
+                    granted: model.permissionStatus.inputMonitoringGranted && model.permissionStatus.inputEventTapAvailable,
                     actionTitle: "Open Input Monitoring Settings",
                     action: actions.openInputMonitoringSettings
                 )
@@ -479,9 +479,15 @@ struct MainView: View {
     }
 
     private var permissionHelpText: String {
-        model.permissionStatus.allGranted
-            ? "Everything is ready. You can start Cleaning."
-            : "Enable permissions to start Cleaning"
+        if model.permissionStatus.allGranted {
+            return "Everything is ready. You can start Cleaning."
+        }
+
+        if model.permissionStatus.inputMonitoringGranted && !model.permissionStatus.inputEventTapAvailable {
+            return "Input Monitoring is enabled, but macOS is not allowing CleanLock to create the input monitor yet. Restart CleanLock, or remove and re-add it in System Settings."
+        }
+
+        return "Enable permissions to start Cleaning"
     }
 
     private var liveShortcut: EmergencyShortcut {

@@ -4,6 +4,8 @@ set -euo pipefail
 APP_NAME="CleanLock"
 PRODUCT_NAME="CleanLock"
 BUNDLE_ID="dev.nxtode.cleanlock"
+MENU_BAR_AGENT_BUNDLE_ID="dev.nxtode.cleanlock.menubar"
+LOGIN_HELPER_BUNDLE_ID="dev.nxtode.cleanlock.loginhelper"
 VERSION="0.1.3"
 BUILD="4"
 APPCAST_URL="https://nxtode.github.io/CleanLock/appcast.xml"
@@ -86,8 +88,8 @@ swift build
 rm -rf "$APP_BUNDLE"
 mkdir -p "$APP_BUNDLE/Contents/MacOS" "$APP_BUNDLE/Contents/Resources" "$APP_BUNDLE/Contents/Frameworks" "$LOGIN_ITEMS_DIR"
 cp "$EXECUTABLE" "$APP_BUNDLE/Contents/MacOS/$APP_NAME"
-stage_helper_app "$MENU_BAR_AGENT_NAME" "$MENU_BAR_AGENT_EXECUTABLE" "$MENU_BAR_AGENT_BUNDLE" "dev.nxtode.cleanlock.menubar"
-stage_helper_app "$LOGIN_HELPER_NAME" "$LOGIN_HELPER_EXECUTABLE" "$LOGIN_HELPER_BUNDLE" "dev.nxtode.cleanlock.loginhelper"
+stage_helper_app "$MENU_BAR_AGENT_NAME" "$MENU_BAR_AGENT_EXECUTABLE" "$MENU_BAR_AGENT_BUNDLE" "$MENU_BAR_AGENT_BUNDLE_ID"
+stage_helper_app "$LOGIN_HELPER_NAME" "$LOGIN_HELPER_EXECUTABLE" "$LOGIN_HELPER_BUNDLE" "$LOGIN_HELPER_BUNDLE_ID"
 SPARKLE_FRAMEWORK="$(find_sparkle_framework)"
 if [[ -z "$SPARKLE_FRAMEWORK" ]]; then
   echo "Sparkle.framework was not found in SwiftPM build products." >&2

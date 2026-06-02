@@ -1,16 +1,6 @@
 import AppKit
+import CleanLockShared
 import Foundation
-
-private enum CleanLockAgentCommand {
-    static let openMainWindowArgument = "--open-main-window"
-    static let startCleaningArgument = "--start-cleaning"
-    static let quitMainArgument = "--quit-main"
-
-    static let openMainWindowNotification = Notification.Name("dev.nxtode.cleanlock.openMainWindow")
-    static let startCleaningNotification = Notification.Name("dev.nxtode.cleanlock.startCleaning")
-    static let quitMainNotification = Notification.Name("dev.nxtode.cleanlock.quitMain")
-    static let quitMenuBarAgentNotification = Notification.Name("dev.nxtode.cleanlock.quitMenuBarAgent")
-}
 
 @main
 @MainActor
@@ -32,10 +22,11 @@ private final class MenuBarAgentDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         DistributedNotificationCenter.default().addObserver(
             self,
-            selector: #selector(quitAgent),
+            selector: #selector(quitAgent(_:)),
             name: CleanLockAgentCommand.quitMenuBarAgentNotification,
             object: nil
         )
+        _ = CleanLockCommandTokenStore.loadOrCreateToken()
         configureStatusItem()
     }
 
@@ -76,7 +67,7 @@ private final class MenuBarAgentDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func lock() {
         post(.startCleaningNotification)
-        launchMainApp(arguments: [CleanLockAgentCommand.startCleaningArgument])
+        launchMainApp(arguments: [CleanLockAgentCommand.startCleaningArgument] + CleanLockCommandTokenStore.tokenArguments())
     }
 
     @objc private func openCleanLock() {
@@ -86,13 +77,17 @@ private final class MenuBarAgentDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func quitCompletely() {
         post(.quitMainNotification)
-        launchMainApp(arguments: [CleanLockAgentCommand.quitMainArgument])
+        launchMainApp(arguments: [CleanLockAgentCommand.quitMainArgument] + CleanLockCommandTokenStore.tokenArguments())
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             NSApp.terminate(nil)
         }
     }
 
-    @objc private func quitAgent() {
+    @objc private func quitAgent(_ notification: Notification) {
+        guard notification.hasValidCleanLockCommandToken else {
+            print("Rejected menu bar agent quit notification with missing or invalid command token.")
+            return
+        }
         NSApp.terminate(nil)
     }
 
@@ -100,7 +95,7 @@ private final class MenuBarAgentDelegate: NSObject, NSApplicationDelegate {
         DistributedNotificationCenter.default().postNotificationName(
             notification,
             object: nil,
-            userInfo: nil,
+            userInfo: CleanLockCommandTokenStore.tokenUserInfo(),
             deliverImmediately: true
         )
     }
@@ -128,12 +123,26 @@ private final class MenuBarAgentDelegate: NSObject, NSApplicationDelegate {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .deletingLastPathComponent()
-        return FileManager.default.fileExists(atPath: url.path) ? url : nil
+        guard FileManager.default.fileExists(atPath: url.path) else { return nil }
+        guard Bundle(url: url)?.bundleIdentifier == CleanLockBundleIdentifier.main else {
+            print("CleanLock main app bundle identifier did not match \(CleanLockBundleIdentifier.main): \(url.path)")
+            return nil
+        }
+        return url
+    }
+}
+
+private typealias CleanLockAgentCommand = CleanLockAppCommand
+
+private extension Notification {
+    var hasValidCleanLockCommandToken: Bool {
+        let token = userInfo?[CleanLockAppCommand.commandTokenUserInfoKey] as? String
+        return CleanLockCommandTokenStore.validateToken(token)
     }
 }
 
 private extension Notification.Name {
-    static let openMainWindowNotification = CleanLockAgentCommand.openMainWindowNotification
-    static let startCleaningNotification = CleanLockAgentCommand.startCleaningNotification
-    static let quitMainNotification = CleanLockAgentCommand.quitMainNotification
+    static let openMainWindowNotification = CleanLockAppCommand.openMainWindowNotification
+    static let startCleaningNotification = CleanLockAppCommand.startCleaningNotification
+    static let quitMainNotification = CleanLockAppCommand.quitMainNotification
 }

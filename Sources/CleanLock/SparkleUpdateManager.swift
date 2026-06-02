@@ -88,7 +88,7 @@ private final class SparkleUpdateDelegate: NSObject, SPUUpdaterDelegate {
     }
 
     func updaterDidNotFindUpdate(_ updater: SPUUpdater, error: Error) {
-        manager?.report(.upToDate, UpdateCheckStatus.upToDate.rawValue)
+        manager?.report(.failed, "Unable to check for updates.")
     }
 
     func updater(_ updater: SPUUpdater, didAbortWithError error: Error) {

@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-and-package:
+    runs-on: macos-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build
+        run: swift build
+
+      - name: Package release artifacts
+        run: ./script/package_release.sh
+
+      - name: Verify bundle metadata
+        run: |
+          set -euo pipefail
+          PLIST_BUDDY="/usr/libexec/PlistBuddy"
+          APP="dist/CleanLock.app"
+          LOGIN_ITEMS="$APP/Contents/Library/LoginItems"
+
+          "$PLIST_BUDDY" -c "Print :CFBundleIdentifier" "$APP/Contents/Info.plist" | grep -qx "dev.nxtode.cleanlock"
+          "$PLIST_BUDDY" -c "Print :SUFeedURL" "$APP/Contents/Info.plist" | grep -qx "https://nxtode.github.io/CleanLock/appcast.xml"
+          test -n "$("$PLIST_BUDDY" -c "Print :SUPublicEDKey" "$APP/Contents/Info.plist")"
+          test -n "$("$PLIST_BUDDY" -c "Print :CFBundleVersion" "$APP/Contents/Info.plist")"
+
+          test -d "$LOGIN_ITEMS/CleanLockMenuBarAgent.app"
+          test -d "$LOGIN_ITEMS/CleanLockLoginHelper.app"
+          test -x "$LOGIN_ITEMS/CleanLockMenuBarAgent.app/Contents/MacOS/CleanLockMenuBarAgent"
+          test -x "$LOGIN_ITEMS/CleanLockLoginHelper.app/Contents/MacOS/CleanLockLoginHelper"
+
+          "$PLIST_BUDDY" -c "Print :CFBundleIdentifier" "$LOGIN_ITEMS/CleanLockMenuBarAgent.app/Contents/Info.plist" | grep -qx "dev.nxtode.cleanlock.menubar"
+          "$PLIST_BUDDY" -c "Print :CFBundleIdentifier" "$LOGIN_ITEMS/CleanLockLoginHelper.app/Contents/Info.plist" | grep -qx "dev.nxtode.cleanlock.loginhelper"
+
+      - name: Reject old bundle identifiers
+        run: |
+          set -euo pipefail
+          OLD_BUNDLE_ID="$(printf "%s.%s.%s" "dev" "asuncion" "cleanlock")"
+          ! grep -R -n -F "$OLD_BUNDLE_ID" Sources script Package.swift README.md docs

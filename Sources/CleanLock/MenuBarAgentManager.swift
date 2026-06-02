@@ -1,23 +1,6 @@
 import AppKit
+import CleanLockShared
 import Foundation
-
-enum CleanLockAppCommand {
-    static let openMainWindowArgument = "--open-main-window"
-    static let startCleaningArgument = "--start-cleaning"
-    static let quitMainArgument = "--quit-main"
-    static let launchedAtLoginArgument = "--launched-at-login"
-
-    static let openMainWindowNotification = Notification.Name("dev.nxtode.cleanlock.openMainWindow")
-    static let startCleaningNotification = Notification.Name("dev.nxtode.cleanlock.startCleaning")
-    static let quitMainNotification = Notification.Name("dev.nxtode.cleanlock.quitMain")
-    static let quitMenuBarAgentNotification = Notification.Name("dev.nxtode.cleanlock.quitMenuBarAgent")
-}
-
-enum CleanLockBundleIdentifier {
-    static let main = "dev.nxtode.cleanlock"
-    static let menuBarAgent = "dev.nxtode.cleanlock.menubar"
-    static let loginHelper = "dev.nxtode.cleanlock.loginhelper"
-}
 
 enum MenuBarAgentManager {
     static func start() {
@@ -41,7 +24,7 @@ enum MenuBarAgentManager {
         DistributedNotificationCenter.default().postNotificationName(
             CleanLockAppCommand.quitMenuBarAgentNotification,
             object: nil,
-            userInfo: nil,
+            userInfo: CleanLockCommandTokenStore.tokenUserInfo(),
             deliverImmediately: true
         )
 
@@ -57,6 +40,11 @@ enum MenuBarAgentManager {
             .appendingPathComponent("Library")
             .appendingPathComponent("LoginItems")
             .appendingPathComponent("CleanLockMenuBarAgent.app")
-        return FileManager.default.fileExists(atPath: url.path) ? url : nil
+        guard FileManager.default.fileExists(atPath: url.path) else { return nil }
+        guard Bundle(url: url)?.bundleIdentifier == CleanLockBundleIdentifier.menuBarAgent else {
+            print("Menu bar agent bundle identifier did not match \(CleanLockBundleIdentifier.menuBarAgent): \(url.path)")
+            return nil
+        }
+        return url
     }
 }
