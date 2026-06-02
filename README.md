@@ -207,6 +207,8 @@ Publish GitHub Pages from the `main` branch and `/docs` folder so the appcast is
 
 If you believe you found a security or privacy issue, please open a GitHub issue with enough detail to reproduce the problem. Avoid sharing sensitive personal information in public issues.
 
+See [SECURITY.md](SECURITY.md) for the security policy and reporting details.
+
 Report issues at:
 
 ```text
@@ -216,6 +218,8 @@ https://github.com/nxtode/CleanLock/issues
 ## License
 
 CleanLock is licensed under the GNU Affero General Public License v3.0 or later.
+
+SPDX: AGPL-3.0-or-later
 
 You may use, study, modify, distribute, and sell copies of CleanLock, provided that any distributed modified version remains licensed under the AGPL and includes the corresponding source code. If you modify CleanLock and make it available for users to interact with over a network, the AGPL also requires that users be able to access the corresponding source code.
 

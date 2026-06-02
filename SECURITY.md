@@ -1,11 +1,16 @@
 # Security Policy
 
-CleanLock is a local macOS utility that requires Accessibility and Input Monitoring permissions to block input during Cleaning Mode.
+## Supported Versions
 
-## Reporting a Vulnerability
+The latest public CleanLock release is supported for security and privacy reports.
+
+## Reporting Security or Privacy Concerns
 
 Report security or privacy concerns through GitHub Issues:
+
+```text
 https://github.com/nxtode/CleanLock/issues
+```
 
 Please include:
 
@@ -16,3 +21,9 @@ Please include:
 - actual behavior
 
 Do not include sensitive personal data in public reports.
+
+## Privacy
+
+CleanLock does not record, store, or transmit keystrokes, mouse input, screen contents, or personal data.
+
+CleanLock does not include analytics, telemetry, or remote tracking.
