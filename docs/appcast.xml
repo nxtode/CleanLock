@@ -3,6 +3,17 @@
     <channel>
         <title>CleanLock</title>
         <item>
+            <title>0.1.2</title>
+            <pubDate>Wed, 03 Jun 2026 00:13:56 +0800</pubDate>
+            <sparkle:version>3</sparkle:version>
+            <sparkle:shortVersionString>0.1.2</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <description sparkle:format="markdown"><![CDATA[CleanLock 0.1.2 release.
+]]></description>
+            <enclosure url="https://github.com/nxtode/CleanLock/releases/download/v0.1.2/CleanLock-v0.1.2.zip" length="3100825" type="application/octet-stream" sparkle:edSignature="jMx8wdPx33CC/5u/6Yz9AvfCegTB01f01qyhdUokyD+gPH0YJevLgmbIdnCvT+ar1JFFTbJl60se+Xhs2gqgDQ=="/>
+        </item>
+        <item>
             <title>0.1.1</title>
             <pubDate>Tue, 02 Jun 2026 23:40:51 +0800</pubDate>
             <sparkle:version>2</sparkle:version>
