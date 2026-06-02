@@ -1,0 +1,24 @@
+{
+  "configurations": [
+    {
+      "type": "swift",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:CleanLock}",
+      "name": "Debug CleanLock",
+      "target": "CleanLock",
+      "configuration": "debug",
+      "preLaunchTask": "swift: Build Debug CleanLock"
+    },
+    {
+      "type": "swift",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:CleanLock}",
+      "name": "Release CleanLock",
+      "target": "CleanLock",
+      "configuration": "release",
+      "preLaunchTask": "swift: Build Release CleanLock"
+    }
+  ]
+}

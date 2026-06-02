@@ -3,7 +3,7 @@ set -euo pipefail
 
 APP_NAME="CleanLock"
 PRODUCT_NAME="CleanLock"
-BUNDLE_ID="dev.nxtode.cleanlock"
+BUNDLE_ID="dev.asuncion.cleanlock"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DIST_DIR="$ROOT_DIR/dist"
 APP_BUNDLE="$DIST_DIR/$APP_NAME.app"

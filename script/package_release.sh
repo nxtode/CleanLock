@@ -4,7 +4,7 @@ export COPYFILE_DISABLE=1
 
 APP_NAME="CleanLock"
 PRODUCT_NAME="CleanLock"
-BUNDLE_ID="dev.nxtode.cleanlock"
+BUNDLE_ID="dev.asuncion.cleanlock"
 VERSION="0.1.0"
 BUILD="1"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

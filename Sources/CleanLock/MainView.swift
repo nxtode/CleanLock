@@ -9,41 +9,6 @@ private enum MainTab: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
-private enum OverlayTint: String, CaseIterable, Identifiable {
-    case black = "#000000"
-    case blue = "#0A84FF"
-    case green = "#30D158"
-    case purple = "#BF5AF2"
-
-    var id: String { rawValue }
-
-    var title: String {
-        switch self {
-        case .black:
-            return "Black"
-        case .blue:
-            return "Blue"
-        case .green:
-            return "Green"
-        case .purple:
-            return "Purple"
-        }
-    }
-
-    var color: Color {
-        switch self {
-        case .black:
-            return .black
-        case .blue:
-            return .blue
-        case .green:
-            return .green
-        case .purple:
-            return .purple
-        }
-    }
-}
-
 struct MainView: View {
     @ObservedObject var model: CleanLockModel
     let actions: MainWindowActions
@@ -60,6 +25,7 @@ struct MainView: View {
     @State private var heldKeyCodes: Set<Int64> = []
     @State private var recordedKeyCodes: Set<Int64> = []
     @State private var shortcutError: String?
+    @State private var shortcutEventMonitor: Any?
 
     var body: some View {
         VStack(alignment: .center, spacing: 16) {
@@ -70,23 +36,22 @@ struct MainView: View {
             }
             .pickerStyle(.segmented)
             .labelsHidden()
-            .padding(.horizontal, 2)
-            .frame(maxWidth: 760)
+            .frame(maxWidth: 500)
             .frame(maxWidth: .infinity)
 
             Divider()
-                .frame(maxWidth: 760)
+                .frame(maxWidth: 500)
 
             ScrollView {
                 selectedContent
-                    .frame(maxWidth: 760, alignment: .leading)
+                    .frame(maxWidth: 500, alignment: .leading)
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.bottom, 12)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .padding(24)
-        .frame(minWidth: 760, minHeight: 560)
+        .padding(20)
+        .frame(minWidth: 460, maxWidth: 540, minHeight: 560)
         .onAppear {
             durationText = "\(UserDefaults.standard.sanitizedCleaningDuration())"
             shortcut = EmergencyShortcut.load()
@@ -95,6 +60,7 @@ struct MainView: View {
         .onDisappear {
             saveDuration()
             cancelRecording()
+            stopShortcutMonitoring()
         }
     }
 
@@ -143,7 +109,7 @@ struct MainView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
-                .frame(width: 360)
+                .frame(maxWidth: .infinity)
                 .disabled(model.isCleaning || model.isStoppingCleaningMode || !model.permissionStatus.allGranted)
 
                 if let inlineMessage = model.inlineMessage {
@@ -254,12 +220,6 @@ struct MainView: View {
                     Text("Hold the desired keys, then release them to apply. Escape cancels recording.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    ShortcutRecorderView(
-                        onEvent: recordEvent,
-                        onCancel: cancelRecording,
-                        onDisappear: cancelRecording
-                    )
-                    .frame(width: 1, height: 1)
                 }
 
                 if let shortcutError {
@@ -280,8 +240,9 @@ struct MainView: View {
                         Text(style.title).tag(style)
                     }
                 }
-                .pickerStyle(.segmented)
-                .frame(maxWidth: .infinity)
+                .pickerStyle(.menu)
+                .labelsHidden()
+                .frame(maxWidth: .infinity, alignment: .leading)
 
                 if currentOverlayStyle == .transparent {
                     VStack(alignment: .leading, spacing: 10) {
@@ -290,19 +251,8 @@ struct MainView: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
 
-                        Picker("Tint color", selection: overlayTintBinding) {
-                            ForEach(OverlayTint.allCases) { tint in
-                                HStack(spacing: 6) {
-                                    Circle()
-                                        .fill(tint.color)
-                                        .frame(width: 10, height: 10)
-                                    Text(tint.title)
-                                }
-                                .tag(tint)
-                            }
-                        }
-                        .pickerStyle(.segmented)
-                        .frame(maxWidth: .infinity)
+                        ColorPicker("Tint", selection: overlayTintColorBinding, supportsOpacity: false)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -324,10 +274,6 @@ struct MainView: View {
                             .foregroundStyle(.orange)
                     }
                 }
-
-                Text("Transparent overlay lets you keep watching the screen while input is locked.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -463,8 +409,10 @@ struct MainView: View {
 
     private func sectionCard<Content: View>(_ title: String? = nil, @ViewBuilder content: () -> Content) -> some View {
         GroupBox {
-            content()
-                .padding(.vertical, 6)
+            VStack(alignment: .leading, spacing: 12) {
+                content()
+            }
+                .padding(20)
                 .frame(maxWidth: .infinity, alignment: .leading)
         } label: {
             if let title {
@@ -530,10 +478,6 @@ struct MainView: View {
         OverlayStyle(rawValue: overlayStyleRaw) ?? .default
     }
 
-    private var currentOverlayTint: OverlayTint {
-        OverlayTint(rawValue: overlayTintColorHex) ?? .black
-    }
-
     private var shouldShowShortcutReset: Bool {
         !isRecordingShortcut && shortcut != .defaultShortcut
     }
@@ -568,12 +512,12 @@ struct MainView: View {
         )
     }
 
-    private var overlayTintBinding: Binding<OverlayTint> {
+    private var overlayTintColorBinding: Binding<Color> {
         Binding(
-            get: { currentOverlayTint },
+            get: { Color.cleanLockHex(overlayTintColorHex) },
             set: { newValue in
-                overlayTintColorHex = newValue.rawValue
-                print("Transparent overlay tint changed: \(newValue.title)")
+                overlayTintColorHex = newValue.cleanLockHexString
+                print("Transparent overlay tint changed: \(overlayTintColorHex)")
             }
         )
     }
@@ -609,10 +553,12 @@ struct MainView: View {
     }
 
     private func beginRecording() {
+        stopShortcutMonitoring()
         heldKeyCodes = []
         recordedKeyCodes = []
         shortcutError = nil
         isRecordingShortcut = true
+        startShortcutMonitoring()
         print("Shortcut recording started.")
     }
 
@@ -661,6 +607,7 @@ struct MainView: View {
 
         guard !newShortcut.isReserved else {
             shortcutError = "That shortcut is reserved by macOS or CleanLock. Choose another shortcut."
+            stopShortcutMonitoring()
             heldKeyCodes = []
             recordedKeyCodes = []
             isRecordingShortcut = false
@@ -670,6 +617,7 @@ struct MainView: View {
 
         newShortcut.save()
         shortcut = newShortcut
+        stopShortcutMonitoring()
         heldKeyCodes = []
         recordedKeyCodes = []
         isRecordingShortcut = false
@@ -679,9 +627,59 @@ struct MainView: View {
 
     private func cancelRecording() {
         guard isRecordingShortcut else { return }
+        stopShortcutMonitoring()
         heldKeyCodes = []
         recordedKeyCodes = []
         isRecordingShortcut = false
         print("Shortcut recording cancelled.")
+    }
+
+    private func startShortcutMonitoring() {
+        guard shortcutEventMonitor == nil else { return }
+        shortcutEventMonitor = NSEvent.addLocalMonitorForEvents(
+            matching: [.keyDown, .keyUp, .flagsChanged, .leftMouseDown, .rightMouseDown, .otherMouseDown]
+        ) { event in
+            if [.leftMouseDown, .rightMouseDown, .otherMouseDown].contains(event.type) {
+                cancelRecording()
+                return event
+            }
+
+            recordEvent(event)
+            return nil
+        }
+    }
+
+    private func stopShortcutMonitoring() {
+        if let shortcutEventMonitor {
+            NSEvent.removeMonitor(shortcutEventMonitor)
+            self.shortcutEventMonitor = nil
+            print("Shortcut recording monitor removed.")
+        }
+    }
+}
+
+private extension Color {
+    static func cleanLockHex(_ value: String) -> Color {
+        var hex = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        if hex.hasPrefix("#") {
+            hex.removeFirst()
+        }
+
+        guard hex.count == 6, let rgb = Int(hex, radix: 16) else {
+            return .black
+        }
+
+        let red = Double((rgb >> 16) & 0xff) / 255.0
+        let green = Double((rgb >> 8) & 0xff) / 255.0
+        let blue = Double(rgb & 0xff) / 255.0
+        return Color(red: red, green: green, blue: blue)
+    }
+
+    var cleanLockHexString: String {
+        let nsColor = NSColor(self).usingColorSpace(.sRGB) ?? .black
+        let red = Int(round(nsColor.redComponent * 255))
+        let green = Int(round(nsColor.greenComponent * 255))
+        let blue = Int(round(nsColor.blueComponent * 255))
+        return String(format: "#%02X%02X%02X", red, green, blue)
     }
 }

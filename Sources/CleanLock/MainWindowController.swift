@@ -22,14 +22,15 @@ final class MainWindowController: NSWindowController, NSWindowDelegate {
         let rootView = MainView(model: model, actions: actions)
         let hostingController = NSHostingController(rootView: rootView)
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 800, height: 640),
+            contentRect: NSRect(x: 0, y: 0, width: 540, height: 680),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
         )
 
         window.title = "CleanLock"
-        window.minSize = NSSize(width: 720, height: 520)
+        window.minSize = NSSize(width: 500, height: 560)
+        window.maxSize = NSSize(width: 540, height: 1_200)
         window.contentViewController = hostingController
         window.isReleasedWhenClosed = false
         window.center()
