@@ -3,12 +3,30 @@ set -euo pipefail
 
 APP_NAME="CleanLock"
 PRODUCT_NAME="CleanLock"
-BUNDLE_ID="dev.asuncion.cleanlock"
+BUNDLE_ID="dev.nxtode.cleanlock"
+VERSION="0.1.0"
+BUILD="1"
+APPCAST_URL="https://nxtode.github.io/CleanLock/appcast.xml"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DIST_DIR="$ROOT_DIR/dist"
 APP_BUNDLE="$DIST_DIR/$APP_NAME.app"
 EXECUTABLE="$ROOT_DIR/.build/debug/$PRODUCT_NAME"
 APP_ICON="$ROOT_DIR/Resources/AppIcon.icns"
+SPARKLE_PUBLIC_KEY_FILE="$ROOT_DIR/Resources/SparklePublicEDKey.txt"
+
+find_sparkle_framework() {
+  find "$ROOT_DIR/.build" -path "*/debug/Sparkle.framework" -type d | head -1
+}
+
+read_sparkle_public_key() {
+  if [[ ! -f "$SPARKLE_PUBLIC_KEY_FILE" ]]; then
+    echo "Missing Sparkle public key file: $SPARKLE_PUBLIC_KEY_FILE" >&2
+    echo "Run ./script/sparkle_generate_keys.sh and save the printed SUPublicEDKey there." >&2
+    exit 1
+  fi
+
+  tr -d '\n\r[:space:]' < "$SPARKLE_PUBLIC_KEY_FILE"
+}
 
 cd "$ROOT_DIR"
 
@@ -16,8 +34,16 @@ pkill -x "$APP_NAME" >/dev/null 2>&1 || true
 swift build
 
 rm -rf "$APP_BUNDLE"
-mkdir -p "$APP_BUNDLE/Contents/MacOS" "$APP_BUNDLE/Contents/Resources"
+mkdir -p "$APP_BUNDLE/Contents/MacOS" "$APP_BUNDLE/Contents/Resources" "$APP_BUNDLE/Contents/Frameworks"
 cp "$EXECUTABLE" "$APP_BUNDLE/Contents/MacOS/$APP_NAME"
+SPARKLE_FRAMEWORK="$(find_sparkle_framework)"
+if [[ -z "$SPARKLE_FRAMEWORK" ]]; then
+  echo "Sparkle.framework was not found in SwiftPM build products." >&2
+  exit 1
+fi
+cp -R "$SPARKLE_FRAMEWORK" "$APP_BUNDLE/Contents/Frameworks/"
+install_name_tool -add_rpath "@executable_path/../Frameworks" "$APP_BUNDLE/Contents/MacOS/$APP_NAME" 2>/dev/null || true
+SPARKLE_PUBLIC_KEY="$(read_sparkle_public_key)"
 if [[ -f "$APP_ICON" ]]; then
   cp "$APP_ICON" "$APP_BUNDLE/Contents/Resources/AppIcon.icns"
 fi
@@ -44,18 +70,26 @@ cat > "$APP_BUNDLE/Contents/Info.plist" <<EOF
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleShortVersionString</key>
-  <string>0.1.1</string>
+  <string>$VERSION</string>
   <key>CFBundleVersion</key>
-  <string>2</string>
+  <string>$BUILD</string>
   <key>LSMinimumSystemVersion</key>
   <string>13.0</string>
   <key>NSHumanReadableCopyright</key>
   <string>© 2026 NXTode</string>
   <key>NSPrincipalClass</key>
   <string>NSApplication</string>
+  <key>SUFeedURL</key>
+  <string>$APPCAST_URL</string>
+  <key>SUPublicEDKey</key>
+  <string>$SPARKLE_PUBLIC_KEY</string>
+  <key>SUEnableAutomaticChecks</key>
+  <true/>
 </dict>
 </plist>
 EOF
+
+codesign --force --deep --sign - "$APP_BUNDLE"
 
 case "${1:-}" in
   --verify)

@@ -4,14 +4,16 @@ export COPYFILE_DISABLE=1
 
 APP_NAME="CleanLock"
 PRODUCT_NAME="CleanLock"
-BUNDLE_ID="dev.asuncion.cleanlock"
-VERSION="0.1.1"
-BUILD="2"
+BUNDLE_ID="dev.nxtode.cleanlock"
+VERSION="0.1.0"
+BUILD="1"
+APPCAST_URL="https://nxtode.github.io/CleanLock/appcast.xml"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DIST_DIR="$ROOT_DIR/dist"
 APP_BUNDLE="$DIST_DIR/$APP_NAME.app"
 EXECUTABLE="$ROOT_DIR/.build/debug/$PRODUCT_NAME"
 APP_ICON="$ROOT_DIR/Resources/AppIcon.icns"
+SPARKLE_PUBLIC_KEY_FILE="$ROOT_DIR/Resources/SparklePublicEDKey.txt"
 ZIP_PATH="$DIST_DIR/$APP_NAME-v$VERSION.zip"
 DMG_PATH="$DIST_DIR/$APP_NAME-v$VERSION.dmg"
 PACKAGE_DIR="$DIST_DIR/package"
@@ -30,18 +32,42 @@ require_tool swift
 require_tool ditto
 require_tool hdiutil
 require_tool osascript
+require_tool install_name_tool
+require_tool codesign
+
+find_sparkle_framework() {
+  find "$ROOT_DIR/.build" -path "*/debug/Sparkle.framework" -type d | head -1
+}
+
+read_sparkle_public_key() {
+  if [[ ! -f "$SPARKLE_PUBLIC_KEY_FILE" ]]; then
+    echo "Missing Sparkle public key file: $SPARKLE_PUBLIC_KEY_FILE" >&2
+    echo "Run ./script/sparkle_generate_keys.sh and save the printed SUPublicEDKey there." >&2
+    exit 1
+  fi
+
+  tr -d '\n\r[:space:]' < "$SPARKLE_PUBLIC_KEY_FILE"
+}
 
 cd "$ROOT_DIR"
 
 echo "Cleaning release artifacts..."
 rm -rf "$APP_BUNDLE" "$ZIP_PATH" "$DMG_PATH" "$PACKAGE_DIR"
-mkdir -p "$APP_BUNDLE/Contents/MacOS" "$APP_BUNDLE/Contents/Resources" "$VOLUME_DIR"
+mkdir -p "$APP_BUNDLE/Contents/MacOS" "$APP_BUNDLE/Contents/Resources" "$APP_BUNDLE/Contents/Frameworks" "$VOLUME_DIR"
 
 echo "Building $APP_NAME..."
 swift build
 
 echo "Staging app bundle..."
 cp "$EXECUTABLE" "$APP_BUNDLE/Contents/MacOS/$APP_NAME"
+SPARKLE_FRAMEWORK="$(find_sparkle_framework)"
+if [[ -z "$SPARKLE_FRAMEWORK" ]]; then
+  echo "Sparkle.framework was not found in SwiftPM build products." >&2
+  exit 1
+fi
+cp -R "$SPARKLE_FRAMEWORK" "$APP_BUNDLE/Contents/Frameworks/"
+install_name_tool -add_rpath "@executable_path/../Frameworks" "$APP_BUNDLE/Contents/MacOS/$APP_NAME" 2>/dev/null || true
+SPARKLE_PUBLIC_KEY="$(read_sparkle_public_key)"
 if [[ -f "$APP_ICON" ]]; then
   cp "$APP_ICON" "$APP_BUNDLE/Contents/Resources/AppIcon.icns"
 fi
@@ -78,9 +104,17 @@ cat > "$APP_BUNDLE/Contents/Info.plist" <<EOF
   <string>© 2026 NXTode</string>
   <key>NSPrincipalClass</key>
   <string>NSApplication</string>
+  <key>SUFeedURL</key>
+  <string>$APPCAST_URL</string>
+  <key>SUPublicEDKey</key>
+  <string>$SPARKLE_PUBLIC_KEY</string>
+  <key>SUEnableAutomaticChecks</key>
+  <true/>
 </dict>
 </plist>
 EOF
+
+codesign --force --deep --sign - "$APP_BUNDLE"
 
 echo "Creating ZIP..."
 ditto -c -k --norsrc --keepParent "$APP_BUNDLE" "$ZIP_PATH"

@@ -1,5 +1,6 @@
 import AppKit
 
+@MainActor
 final class MenuBarController {
     private var statusItem: NSStatusItem?
     private weak var appDelegate: AppDelegate?
@@ -11,10 +12,6 @@ final class MenuBarController {
         configureStatusItem()
         configureMenu()
         print("Menu bar icon enabled.")
-    }
-
-    deinit {
-        invalidate()
     }
 
     func invalidate() {

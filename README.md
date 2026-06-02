@@ -14,18 +14,36 @@ Repository: https://github.com/nxtode/CleanLock
 - Auto-unlock duration, including `0` to disable auto-unlock.
 - Overlay styles: Default, Transparent with opacity and tint, and Custom Image.
 - Start at Login.
-- Manual and automatic update checks through GitHub Releases.
+- In-app update checks and installs through Sparkle.
+- GitHub Releases fallback update checks.
 - Accessibility and Input Monitoring permission detection.
 
 ## Installation
 
-1. Download the latest DMG or ZIP from GitHub Releases.
-2. Recommended: open the DMG.
+1. Download `CleanLock-v0.1.0.dmg` from GitHub Releases.
+2. Open the DMG.
 3. Drag `CleanLock.app` into Applications.
 4. Open CleanLock.
 5. Go to the Permissions tab and enable the required macOS permissions.
 
 Unsigned or unnotarized builds may trigger macOS security warnings.
+
+## Updates
+
+The first install is via DMG. Future updates can be installed through CleanLock using Sparkle from About & Support > Check for Updates.
+
+Sparkle appcast:
+
+```text
+https://nxtode.github.io/CleanLock/appcast.xml
+```
+
+GitHub Releases host the release assets:
+
+- DMG: first install and manual installation.
+- ZIP: Sparkle update asset and release fallback download.
+
+The Sparkle private key is stored in the macOS Keychain by Sparkle tooling. Never commit private Sparkle keys. Only the public `SUPublicEDKey` belongs in the app bundle metadata.
 
 ## Required Permissions
 
@@ -62,41 +80,34 @@ Click the shortcut field to start recording immediately. Press Escape or click o
 
 Custom images are copied into `Application Support/CleanLock` so the overlay can still load them if the original file moves. If a custom image is missing or unreadable, CleanLock falls back safely to the default overlay.
 
-## Start At Login
-
-The General tab includes `Start CleanLock at login`. CleanLock uses the macOS `ServiceManagement.SMAppService.mainApp` API on macOS 13 or later to register or unregister the app.
-
-## Optional Menu Bar Access
-
-The General tab includes `Show CleanLock in menu bar`. When enabled, the menu bar item can start Cleaning Mode, open CleanLock, or quit the app.
-
-## Update Checking
-
-CleanLock checks GitHub Releases:
-
-```text
-https://api.github.com/repos/nxtode/CleanLock/releases/latest
-```
-
-Manual update checks are available in About & Support. Automatic update checks can be enabled or disabled and run at most once per day. CleanLock does not auto-install updates; use the release page to download the newest DMG or ZIP.
-
-## Build From Source
+## Build, Package, And Appcast
 
 ```sh
 swift build
 ./script/build_and_run.sh --verify
 ./script/package_release.sh
+./script/sparkle_generate_appcast.sh
 ```
 
-## Release Packaging
+Generate a Sparkle key when setting up a new signing identity:
+
+```sh
+./script/sparkle_generate_keys.sh
+```
+
+Save only the printed public `SUPublicEDKey` in `Resources/SparklePublicEDKey.txt`.
 
 `script/package_release.sh` creates release artifacts in `dist/`:
 
 - `dist/CleanLock.app`
-- `dist/CleanLock-v0.1.1.zip`
-- `dist/CleanLock-v0.1.1.dmg`
+- `dist/CleanLock-v0.1.0.zip`
+- `dist/CleanLock-v0.1.0.dmg`
 
-The DMG includes `CleanLock.app` and an Applications symlink so users can drag the app into Applications.
+`script/sparkle_generate_appcast.sh` writes:
+
+- `docs/appcast.xml`
+
+Publish GitHub Pages from the `main` branch and `/docs` folder so the appcast is available at the Sparkle URL.
 
 ## Known Limitations
 

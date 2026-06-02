@@ -1,11 +1,13 @@
 import AppKit
 import SwiftUI
 
+@MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var menuBarController: MenuBarController?
     private let model = CleanLockModel()
     private let inputBlocker = InputBlocker()
     private let permissionManager = PermissionManager()
+    private let sparkleUpdateManager = SparkleUpdateManager.shared
     private var overlayWindow: CleaningOverlayWindow?
     private var mainWindowController: MainWindowController?
     private var countdownTimer: Timer?
@@ -29,7 +31,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             object: nil
         )
         configureMenuBarVisibility(UserDefaults.standard.bool(forKey: PreferencesKeys.showMenuBarIcon))
-        model.updatesAutomaticallyEnabled = UserDefaults.standard.bool(forKey: PreferencesKeys.automaticUpdateChecksEnabled)
+        configureSparkleUpdates()
         refreshStartAtLoginStatus()
         showMainWindow()
         scheduleAutomaticUpdateCheckIfNeeded()
@@ -215,6 +217,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         model.updateStatusText = UpdateCheckStatus.checking.rawValue
         model.latestReleaseURL = nil
 
+        if !isAutomatic, sparkleUpdateManager.checkForUpdates() {
+            print("Sparkle update check started.")
+            return
+        }
+
         Task { [weak self] in
             guard let self else { return }
             let result = await UpdateChecker.checkLatestRelease(currentVersion: AppInfo.version)
@@ -262,8 +269,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func updateAutomaticUpdatePreference(_ isEnabled: Bool) {
         model.updatesAutomaticallyEnabled = isEnabled
         UserDefaults.standard.set(isEnabled, forKey: PreferencesKeys.automaticUpdateChecksEnabled)
+        sparkleUpdateManager.automaticallyChecksForUpdates = isEnabled
         print("Automatic update checks \(isEnabled ? "enabled" : "disabled").")
-        if isEnabled {
+        if isEnabled, !sparkleUpdateManager.isConfigured {
             scheduleAutomaticUpdateCheckIfNeeded()
         }
     }
@@ -290,6 +298,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             PreferencesKeys.overlayTintColorHex: "#000000",
             PreferencesKeys.automaticUpdateChecksEnabled: true
         ])
+    }
+
+    private func configureSparkleUpdates() {
+        sparkleUpdateManager.statusChanged = { [weak self] status, text, releaseURL in
+            guard let self else { return }
+            self.model.updateCheckStatus = status
+            self.model.updateStatusText = text
+            self.model.latestReleaseURL = releaseURL
+            UserDefaults.standard.set(Date(), forKey: PreferencesKeys.lastUpdateCheckDate)
+        }
+        model.updatesAutomaticallyEnabled = sparkleUpdateManager.automaticallyChecksForUpdates
     }
 
     private func configureMenuBarVisibility(_ isEnabled: Bool) {
@@ -327,6 +346,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func scheduleAutomaticUpdateCheckIfNeeded() {
         guard UserDefaults.standard.bool(forKey: PreferencesKeys.automaticUpdateChecksEnabled) else { return }
+        guard !sparkleUpdateManager.isConfigured else { return }
 
         if let lastCheck = UserDefaults.standard.object(forKey: PreferencesKeys.lastUpdateCheckDate) as? Date,
            Date().timeIntervalSince(lastCheck) < 86_400 {
@@ -344,16 +364,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         updateOverlay()
         countdownTimer?.invalidate()
         countdownTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] timer in
-            guard let self else {
-                timer.invalidate()
-                return
-            }
+            Task { @MainActor in
+                guard let self else {
+                    timer.invalidate()
+                    return
+                }
 
             self.remainingSeconds -= 1
             if self.remainingSeconds <= 0 {
                 self.stopCleaningMode(reason: .timer)
             } else {
                 self.updateOverlay()
+            }
             }
         }
     }
