@@ -93,8 +93,8 @@ swift build
 `script/package_release.sh` creates release artifacts in `dist/`:
 
 - `dist/CleanLock.app`
-- `dist/CleanLock-v0.1.0.zip`
-- `dist/CleanLock-v0.1.0.dmg`
+- `dist/CleanLock-v0.1.1.zip`
+- `dist/CleanLock-v0.1.1.dmg`
 
 The DMG includes `CleanLock.app` and an Applications symlink so users can drag the app into Applications.
 
