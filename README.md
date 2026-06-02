@@ -46,7 +46,7 @@ CleanLock is a native macOS utility that starts a temporary Cleaning Mode, block
 4. Open CleanLock.
 5. Go to the Permissions tab and enable the required macOS permissions.
 
-Unsigned or unnotarized builds may trigger macOS security warnings.
+The current public build is not yet Developer ID signed or notarized, so macOS may show a security warning.
 
 ## Required Permissions
 
@@ -93,7 +93,7 @@ Only install CleanLock from the official GitHub Releases page unless you trust a
 
 Because CleanLock requires sensitive macOS permissions, users should only install builds from sources they trust. The official CleanLock builds are published from the NXTode repository. Forks and modified versions should be reviewed before installation.
 
-CleanLock protects menu bar commands with a local command token shared between its bundled main app, menu bar agent, and login helper. Release packaging also verifies bundle identifiers, Sparkle metadata, helper apps, and top-level ZIP structure before artifacts are produced.
+CleanLock protects menu bar commands with a local command token shared between its bundled main app, menu bar agent, and login helper. Release packages are built from release artifacts, and packaging verifies bundle identifiers, Sparkle metadata, helper apps, and top-level ZIP structure before artifacts are produced.
 
 ## Usage
 
@@ -162,6 +162,8 @@ swift build
 ## Release Process
 
 ```sh
+swift build
+./script/build_and_run.sh --verify
 ./script/package_release.sh
 ./script/sparkle_generate_appcast.sh
 ```
@@ -177,8 +179,8 @@ Save only the printed public `SUPublicEDKey` in `Resources/SparklePublicEDKey.tx
 `script/package_release.sh` creates release artifacts in `dist/`:
 
 - `dist/CleanLock.app`
-- `dist/CleanLock-v0.1.3.zip`
-- `dist/CleanLock-v0.1.3.dmg`
+- `dist/CleanLock-v0.1.4.zip`
+- `dist/CleanLock-v0.1.4.dmg`
 - `dist/CleanLock-latest.zip`
 - `dist/CleanLock-latest.dmg`
 
@@ -190,15 +192,14 @@ Release packaging builds with `swift build -c release` and stages the release ex
 
 Publish GitHub Pages from the `main` branch and `/docs` folder so the appcast is available at the Sparkle URL.
 
-CleanLock v0.1.3 keeps the persistent menu bar behavior and uses a CleanLock-titled menu with simpler actions: Lock, Preferences, and Quit.
-
 ## Known Limitations
 
 - macOS requires manual Accessibility and Input Monitoring approval.
-- Some media, brightness, or hardware-level keys may be handled by macOS before apps can intercept them.
+- Some media, brightness, Caps Lock, or hardware-level keys may be handled by macOS before apps can intercept them.
 - Caps Lock is blocked while the event tap receives it, and CleanLock attempts to restore the original state afterward, but some keyboards may apply Caps Lock below the app event layer.
 - Cursor movement is disassociated from the mouse/trackpad during Cleaning Mode and restored when Cleaning Mode stops.
-- Unsigned or unnotarized builds may trigger macOS security warnings.
+- The current public build is not yet Developer ID signed or notarized, so macOS may show a security warning.
+- Signing and notarization are recommended for future release hardening.
 - Permissions may require quitting and reopening CleanLock after approval.
 - CleanLock is intended for brief cleaning sessions, not as a security lock.
 
